@@ -2,8 +2,7 @@ import { Suspense, useTransition } from "react";
 import { useHash } from "react-use";
 import IndexPage from "./IndexPage.js";
 import Layout from "./Layout.js";
-
-import "./App.css";
+import { Spinner } from "flowbite-react";
 
 function App() {
   return (
@@ -25,7 +24,7 @@ function Router() {
 
   let content;
   if (page === "" || page === "#/") {
-    content = <IndexPage navigate={navigate} />;
+    content = <IndexPage />;
   } else {
     content = <NotFound page={page} navigate={navigate} />;
   }
@@ -33,7 +32,11 @@ function Router() {
 }
 
 function BigSpinner() {
-  return <h2 className="big-spinner">🌀 Loading...</h2>;
+  return (
+    <div className="leading-6 text-center">
+      <Spinner /> Loading...
+    </div>
+  );
 }
 
 function NotFound({ navigate, page }) {
