@@ -39,7 +39,7 @@ function check(draft, formData) {
   }
 }
 
-export default function NewAddressPage({ addAddress, navigate }) {
+export default function NewAddressPage({ addAddress, navigate, template }) {
   const [state, dispatch] = useImmerReducer(
     (draft, action) => {
       switch (action.type) {
@@ -64,7 +64,7 @@ export default function NewAddressPage({ addAddress, navigate }) {
     },
     {
       error: null,
-      data: {
+      data: template ?? {
         args: "",
         threshold: 1,
         required: 0,
@@ -93,7 +93,7 @@ export default function NewAddressPage({ addAddress, navigate }) {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
-      <h2>Add Multisig Address</h2>
+      <h2 className="text-lg">Add Multisig Address</h2>
       <div className="flex flex-row gap-4">
         <div className="w-1/2">
           <div className="mb-2 block">

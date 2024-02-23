@@ -4,14 +4,14 @@ import DeleteButton from "./components/DeleteButton.js";
 function AddressesList({ navigate, addresses, deleteAddress }) {
   return (
     <section>
-      <h2 className="text-lg border-b-2 leading-8 mb-4">Mulgisig Addresses</h2>
+      <h2 className="text-lg border-b-2 mb-4">Mulgisig Addresses</h2>
       <ul className="mb-4">
         {addresses.map((address) => (
           <li
             key={`address-#{address.args}`}
-            className="font-mono flex flex-row items-center p-2 hover:bg-slate-100"
+            className="font-mono flex flex-row gap-2 items-center p-2 hover:bg-slate-100"
           >
-            <a className="grow" href={`#/addresses/${address.args}`}>
+            <a className="grow break-all" href={`#/addresses/${address.args}`}>
               {address.args}
             </a>
             <DeleteButton onClick={() => deleteAddress(address.args)} />

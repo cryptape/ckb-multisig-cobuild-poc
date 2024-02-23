@@ -1,9 +1,10 @@
+import { Spinner } from "flowbite-react";
 import { Suspense, useCallback, useTransition } from "react";
 import { useHash } from "react-use";
+import AddressPage from "./AddressPage.js";
 import IndexPage from "./IndexPage.js";
-import NewAddressPage from "./NewAddressPage.js";
 import Layout from "./Layout.js";
-import { Spinner } from "flowbite-react";
+import NewAddressPage from "./NewAddressPage.js";
 import usePersistReducer from "./reducer.js";
 
 function App() {
@@ -14,7 +15,9 @@ function App() {
   );
 }
 
-const PREFIX_DUPLICATE_ADDRESS = "#/addresses/duplicate/";
+function findAddress(state, args) {
+  return state.addresses.find((address) => address.args === args);
+}
 
 function Router() {
   const [page, setPage] = useHash();
@@ -23,30 +26,39 @@ function Router() {
 
   const navigate = useCallback((url) => startTransition(() => setPage(url)));
 
-  let content;
-  switch (page) {
-    case "":
-    case "#/":
-      content = <IndexPage {...{ navigate, state, deleteAddress }} />;
-      break;
-    case "#/addresses/new":
-      content = <NewAddressPage {...{ navigate, addAddress }} />;
-      break;
-    default:
-      if (page.startsWith(PREFIX_DUPLICATE_ADDRESS)) {
-        content = (
-          <NewAddressPage
-            {...{
-              navigate,
-              addAddress,
-              template: page.substring(PREFIX_DUPLICATE_ADDRESS.length),
-            }}
-          />
+  const fallbackRoute = () => <NotFound {...{ page, navigate }} />;
+  const staticRoutes = {
+    "#/": () => <IndexPage {...{ navigate, state, deleteAddress }} />,
+    "#/addresses/new": () => <NewAddressPage {...{ navigate, addAddress }} />,
+  };
+  staticRoutes[""] = staticRoutes["#/"];
+  const dynamicRoutes = [
+    [
+      "#/addresses/duplicate/",
+      (args) => (
+        <NewAddressPage
+          {...{ navigate, addAddress, template: findAddress(state, args) }}
+        />
+      ),
+    ],
+    [
+      "#/addresses/",
+      (args) => {
+        const address = findAddress(state, args);
+        return address ? (
+          <AddressPage {...{ address, deleteAddress, navigate }} />
+        ) : (
+          fallbackRoute()
         );
-      } else {
-        content = <NotFound {...{ page, navigate }} />;
-      }
-  }
+      },
+    ],
+  ];
+  const content = dispatchRoute(
+    page,
+    staticRoutes,
+    dynamicRoutes,
+    fallbackRoute,
+  );
 
   return <Layout isPending={isPending}>{content}</Layout>;
 }
@@ -68,6 +80,19 @@ function NotFound({ navigate, page }) {
       </a>
     </>
   );
+}
+
+function dispatchRoute(page, staticRoutes, dynamicRoutes, fallbackRoute) {
+  if (page in staticRoutes) {
+    return staticRoutes[page]();
+  }
+  for (const [prefix, creator] of dynamicRoutes) {
+    if (page.startsWith(prefix)) {
+      const path = page.slice(prefix.length).split("/");
+      return creator(...path);
+    }
+  }
+  return fallbackRoute();
 }
 
 export default App;
