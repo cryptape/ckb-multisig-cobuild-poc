@@ -39,4 +39,6 @@ jobs:
         run: pnpm install
 
       - name: Run Command
+        env:
+          CI: false
         run: ${{ matrix.run }}
