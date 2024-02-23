@@ -9,17 +9,21 @@ const INITIAL_STATE = {
   addresses: [],
 };
 
+function deleteAddressByArgs(draft, args) {
+  const index = draft.addresses.findIndex((address) => address.args === args);
+  if (index !== -1) {
+    draft.addresses.splice(index, 1);
+  }
+}
+
 function reducer(draft, action) {
   switch (action.type) {
     case "addAddress":
-      // deduplicate
-      const index = draft.addresses.findIndex(
-        (config) => config.args === action.payload.args,
-      );
-      if (index !== -1) {
-        draft.addresses.splice(index, 1);
-      }
+      deleteAddressByArgs(draft, action.payload.args);
       draft.addresses.push(action.payload);
+      break;
+    case "deleteAddress":
+      deleteAddressByArgs(draft, action.payload);
       break;
     default:
       throw new Error(`Unknown action type ${action.type}`);
@@ -49,7 +53,14 @@ const usePersistReducer = () => {
   // use wrapped reducer and the saved value from
   // `localStorage` as params to `useReducer`.
   // this will return `[state, dispatch]`
-  return useImmerReducer(reducerLocalStorage, savedState);
+  const [state, dispatch] = useImmerReducer(reducerLocalStorage, savedState);
+  const addAddress = useCallback((address) =>
+    dispatch({ type: "addAddress", payload: address }),
+  );
+  const deleteAddress = useCallback((args) =>
+    dispatch({ type: "deleteAddress", payload: args }),
+  );
+  return [state, { addAddress, deleteAddress }];
 };
 
 export default usePersistReducer;

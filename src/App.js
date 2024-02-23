@@ -14,28 +14,38 @@ function App() {
   );
 }
 
+const PREFIX_DUPLICATE_ADDRESS = "#/addresses/duplicate/";
+
 function Router() {
   const [page, setPage] = useHash();
   const [isPending, startTransition] = useTransition();
-  const [state, dispatch] = usePersistReducer();
+  const [state, { addAddress, deleteAddress }] = usePersistReducer();
 
   const navigate = useCallback((url) => startTransition(() => setPage(url)));
-  const addAddress = useCallback((payload) =>
-    dispatch({ type: "addAddress", payload }),
-  );
 
   let content;
   switch (page) {
     case "":
     case "#/":
-      content = <IndexPage {...{ navigate, state }} />;
+      content = <IndexPage {...{ navigate, state, deleteAddress }} />;
       break;
     case "#/addresses/new":
       content = <NewAddressPage {...{ navigate, addAddress }} />;
       break;
     default:
-      content = <NotFound {...{ page, navigate }} />;
-      break;
+      if (page.startsWith(PREFIX_DUPLICATE_ADDRESS)) {
+        content = (
+          <NewAddressPage
+            {...{
+              navigate,
+              addAddress,
+              template: page.substring(PREFIX_DUPLICATE_ADDRESS.length),
+            }}
+          />
+        );
+      } else {
+        content = <NotFound {...{ page, navigate }} />;
+      }
   }
 
   return <Layout isPending={isPending}>{content}</Layout>;
