@@ -1,5 +1,5 @@
 import { Spinner } from "flowbite-react";
-import { Suspense, useCallback, useTransition } from "react";
+import { Suspense, useTransition } from "react";
 import { useHash } from "react-use";
 import AddressPage from "./AddressPage.js";
 import IndexPage from "./IndexPage.js";
@@ -24,7 +24,7 @@ function Router() {
   const [isPending, startTransition] = useTransition();
   const [state, { addAddress, deleteAddress }] = usePersistReducer();
 
-  const navigate = useCallback((url) => startTransition(() => setPage(url)));
+  const navigate = (url) => startTransition(() => setPage(url));
 
   const fallbackRoute = () => <NotFound {...{ page, navigate }} />;
   const staticRoutes = {

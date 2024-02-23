@@ -1,5 +1,5 @@
 import { Alert, Button, Label, TextInput } from "flowbite-react";
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 import { HiMinus, HiPlus } from "react-icons/hi";
 import { useImmerReducer } from "use-immer";
 import { MultisigConfig } from "./schemas.js";
@@ -72,17 +72,13 @@ export default function NewAddressPage({ addAddress, navigate, template }) {
       },
     },
   );
-  const incrementSigner = useCallback(() =>
-    dispatch({ type: "incrementSigner" }),
-  );
-  const decrementSigner = useCallback(() =>
-    dispatch({ type: "decrementSigner" }),
-  );
-  const submit = useCallback((e) => {
+  const incrementSigner = () => dispatch({ type: "incrementSigner" });
+  const decrementSigner = () => dispatch({ type: "decrementSigner" });
+  const submit = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     dispatch({ type: "submit", payload: formData });
-  });
+  };
 
   useEffect(() => {
     if (state.done) {

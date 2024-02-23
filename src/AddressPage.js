@@ -39,6 +39,9 @@ export default function AddressPage({ address, deleteAddress, navigate }) {
             navigate("#/");
           }}
         />
+        <Button outline color="light" as="a" href="#/">
+          Go Back
+        </Button>
       </div>
     </section>
   );

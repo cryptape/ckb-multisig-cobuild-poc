@@ -6,9 +6,13 @@ export default function Layout({ children, isPending }) {
           style={{
             opacity: isPending ? 0.7 : 1,
           }}
-          className="font-serif text-xl leading-8 mb-8"
+          className="font-serif text-xl leading-8 mb-8 align-middle"
         >
-          <a href="#/">CKB Multisig CoBuild PoC</a>
+          <p>
+            <a className="align-top" href="#/">
+              CKB Multisig CoBuild PoC
+            </a>
+          </p>
         </header>
         <main className="box-border">{children}</main>
       </div>

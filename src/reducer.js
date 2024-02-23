@@ -54,11 +54,13 @@ const usePersistReducer = () => {
   // `localStorage` as params to `useReducer`.
   // this will return `[state, dispatch]`
   const [state, dispatch] = useImmerReducer(reducerLocalStorage, savedState);
-  const addAddress = useCallback((address) =>
-    dispatch({ type: "addAddress", payload: address }),
+  const addAddress = useCallback(
+    (address) => dispatch({ type: "addAddress", payload: address }),
+    [dispatch],
   );
-  const deleteAddress = useCallback((args) =>
-    dispatch({ type: "deleteAddress", payload: args }),
+  const deleteAddress = useCallback(
+    (args) => dispatch({ type: "deleteAddress", payload: args }),
+    [dispatch],
   );
   return [state, { addAddress, deleteAddress }];
 };
