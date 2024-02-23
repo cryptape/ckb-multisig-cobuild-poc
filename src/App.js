@@ -1,8 +1,10 @@
-import { Suspense, useTransition } from "react";
+import { Suspense, useCallback, useTransition } from "react";
 import { useHash } from "react-use";
 import IndexPage from "./IndexPage.js";
+import NewAddressPage from "./NewAddressPage.js";
 import Layout from "./Layout.js";
 import { Spinner } from "flowbite-react";
+import usePersistReducer from "./reducer.js";
 
 function App() {
   return (
@@ -15,19 +17,27 @@ function App() {
 function Router() {
   const [page, setPage] = useHash();
   const [isPending, startTransition] = useTransition();
+  const [state, dispatch] = usePersistReducer();
 
-  function navigate(url) {
-    startTransition(() => {
-      setPage(url);
-    });
-  }
+  const navigate = useCallback((url) => startTransition(() => setPage(url)));
+  const addAddress = useCallback((payload) =>
+    dispatch({ type: "addAddress", payload }),
+  );
 
   let content;
-  if (page === "" || page === "#/") {
-    content = <IndexPage />;
-  } else {
-    content = <NotFound page={page} navigate={navigate} />;
+  switch (page) {
+    case "":
+    case "#/":
+      content = <IndexPage {...{ navigate, state }} />;
+      break;
+    case "#/addresses/new":
+      content = <NewAddressPage {...{ navigate, addAddress }} />;
+      break;
+    default:
+      content = <NotFound {...{ page, navigate }} />;
+      break;
   }
+
   return <Layout isPending={isPending}>{content}</Layout>;
 }
 

@@ -1,9 +1,7 @@
-import { enableMapSet, current } from "immer";
+import { current } from "immer";
 import { useCallback } from "react";
 import { useLocalStorage } from "react-use";
 import { useImmerReducer } from "use-immer";
-
-enableMapSet();
 
 const LOCAL_STORAGE_KEY = "ckb-multisig";
 
@@ -12,12 +10,19 @@ const INITIAL_STATE = {
 };
 
 function reducer(draft, action) {
-  switch (action.module) {
+  switch (action.type) {
     case "addAddress":
+      // deduplicate
+      const index = draft.addresses.findIndex(
+        (config) => config.args === action.payload.args,
+      );
+      if (index !== -1) {
+        draft.addresses.splice(index, 1);
+      }
       draft.addresses.push(action.payload);
       break;
     default:
-      throw new Error();
+      throw new Error(`Unknown action type ${action.type}`);
   }
 }
 
