@@ -4,19 +4,17 @@ import { utils as lumosBaseUtils } from "@ckb-lumos/base";
 
 const { CKBHasher } = lumosBaseUtils;
 
-function checkAddress(address) {
-  const prefix = address.startsWith("ckb")
-    ? "ckb"
-    : address.startsWith("ckt")
-    ? "ckt"
-    : null;
-  if (prefix === null) {
-    return false;
-  }
+const SECP256K1_CODE_HASH =
+  "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8";
 
+function checkSecp256k1Address(address) {
   try {
-    addressToScript(address, { config: { PREFIX: prefix } });
-    return true;
+    const script = parseAddress(address);
+    return (
+      script.codeHash === SECP256K1_CODE_HASH &&
+      script.hashType === "type" &&
+      script.args.length == 42
+    );
   } catch (error) {
     return false;
   }
@@ -26,8 +24,8 @@ function parseAddress(address) {
   const prefix = address.startsWith("ckb")
     ? "ckb"
     : address.startsWith("ckt")
-    ? "ckt"
-    : null;
+      ? "ckt"
+      : null;
   if (prefix === null) {
     throw new Error(`Invalid CKB Address: ${address}`);
   }
@@ -58,8 +56,8 @@ function generateMultisigArgs(config) {
   return hasher.digestHex().substring(0, 42);
 }
 
-export const Address = z.string().refine(checkAddress, {
-  message: "invalid CKB address",
+export const Address = z.string().refine(checkSecp256k1Address, {
+  message: "invalid CKB secp256k1 address",
 });
 
 export const MultisigConfig = z
