@@ -1,5 +1,6 @@
 import DeleteButton from "./components/DeleteButton.js";
 import { Button } from "flowbite-react";
+import { generateMultisigAddress } from "./lib/ckb-address.js";
 
 export default function AddressPage({ address, deleteAddress, navigate }) {
   return (
@@ -7,6 +8,23 @@ export default function AddressPage({ address, deleteAddress, navigate }) {
       <h2 className="text-lg mb-4">
         Multisig <code className="break-all">{address.args}</code>
       </h2>
+
+      <dl className="mb-4">
+        <dt>Testnet Address</dt>
+        <dd className="mb-4">
+          <code className="break-all">
+            {generateMultisigAddress(address, "ckt")}
+          </code>
+        </dd>
+
+        <dt>Mainnet Address</dt>
+        <dd className="mb-4">
+          <code className="break-all">
+            {generateMultisigAddress(address, "ckb")}
+          </code>
+        </dd>
+      </dl>
+
       <p className="mb-4">
         Requiring {address.threshold}{" "}
         {address.threshold === 1 ? "signature" : "signatures"} from{" "}
