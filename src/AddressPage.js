@@ -25,6 +25,45 @@ export function CkbCliUsage({ address, ...props }) {
   );
 }
 
+export function NeuronUsage({ address, ...props }) {
+  const neuronConfig = {
+    multisig_configs: {
+      [address.args]: {
+        sighash_addresses: address.signers,
+        require_first_n: address.required,
+        threshold: address.threshold,
+      },
+    },
+  };
+  const fileName = `multisig-config-${address.args}.json`;
+  const file = new Blob([JSON.stringify(neuronConfig)], { type: "text/plain" });
+
+  return (
+    <div {...props}>
+      <h2 className="text-lg mb-4">
+        Use In <i>Neuron</i>
+      </h2>
+      <p className="mb-4">
+        Download the file and import it into Neuron Multisig Addresses Tool (In
+        Menu: Tools / Multisig Addresses)
+      </p>
+      <p>
+        <Button
+          className="inline-block"
+          outlined
+          as="a"
+          download={fileName}
+          target="_blank"
+          rel="noreferrer"
+          href={URL.createObjectURL(file)}
+        >
+          Download
+        </Button>
+      </p>
+    </div>
+  );
+}
+
 export default function AddressPage({ address, deleteAddress, navigate }) {
   return (
     <>
@@ -87,6 +126,7 @@ export default function AddressPage({ address, deleteAddress, navigate }) {
         </div>
       </section>
       <CkbCliUsage className="mb-4" address={address} />
+      <NeuronUsage className="mb-4" address={address} />
     </>
   );
 }
