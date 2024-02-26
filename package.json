@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@ckb-lumos/base": "^0.21.1",
-    "@ckb-lumos/helpers": "^0.21.1",
+    "@ckb-cobuild/ckb-address": "^1.0.0",
+    "@ckb-cobuild/ckb-hasher": "^1.0.0",
+    "@ckb-cobuild/hex-encoding": "^1.0.0",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",

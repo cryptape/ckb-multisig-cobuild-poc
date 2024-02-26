@@ -1,7 +1,8 @@
+import { encodeHex } from "@ckb-cobuild/hex-encoding";
 import { z } from "zod";
 import {
-  generateMultisigArgs,
   checkSecp256k1Address,
+  generateMultisigArgs,
 } from "./lib/ckb-address.js";
 
 export const Address = z.string().refine(checkSecp256k1Address, {
@@ -40,5 +41,5 @@ export const MultisigConfig = z
   })
   .transform((val) => ({
     ...val,
-    args: generateMultisigArgs(val),
+    args: `0x${encodeHex(generateMultisigArgs(val))}`,
   }));
