@@ -8,7 +8,7 @@ function AddressesList({ navigate, addresses, deleteAddress }) {
       <ul className="mb-4">
         {addresses.map((address) => (
           <li
-            key={`address-#{address.args}`}
+            key={`address-${address.args}`}
             className="font-mono flex flex-row gap-2 items-center p-2 hover:bg-slate-100"
           >
             <a className="grow break-all" href={`#/addresses/${address.args}`}>
@@ -18,7 +18,12 @@ function AddressesList({ navigate, addresses, deleteAddress }) {
           </li>
         ))}
       </ul>
-      <Button onClick={() => navigate("#/addresses/new")}>Add Address</Button>
+      <div className="mb-4 flex flex-row gap-2 flex-wrap">
+        <Button onClick={() => navigate("#/addresses/new")}>Add Address</Button>
+        <Button onClick={() => navigate("#/addresses/import")}>
+          Import Addresses
+        </Button>
+      </div>
     </section>
   );
 }

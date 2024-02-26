@@ -19,8 +19,13 @@ function deleteAddressByArgs(draft, args) {
 function reducer(draft, action) {
   switch (action.type) {
     case "addAddress":
-      deleteAddressByArgs(draft, action.payload.args);
-      draft.addresses.push(action.payload);
+      const addresses = Array.isArray(action.payload)
+        ? action.payload
+        : [action.payload];
+      for (const address of addresses) {
+        deleteAddressByArgs(draft, address.args);
+        draft.addresses.push(address);
+      }
       break;
     case "deleteAddress":
       deleteAddressByArgs(draft, action.payload);

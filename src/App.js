@@ -5,6 +5,7 @@ import AddressPage from "./AddressPage.js";
 import IndexPage from "./IndexPage.js";
 import Layout from "./Layout.js";
 import NewAddressPage from "./NewAddressPage.js";
+import ImportAddressPage from "./ImportAddressPage.js";
 import usePersistReducer from "./reducer.js";
 
 function App() {
@@ -30,6 +31,9 @@ function Router() {
   const staticRoutes = {
     "#/": () => <IndexPage {...{ navigate, state, deleteAddress }} />,
     "#/addresses/new": () => <NewAddressPage {...{ navigate, addAddress }} />,
+    "#/addresses/import": () => (
+      <ImportAddressPage {...{ navigate, addAddress }} />
+    ),
   };
   staticRoutes[""] = staticRoutes["#/"];
   const dynamicRoutes = [

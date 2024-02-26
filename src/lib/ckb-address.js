@@ -1,6 +1,9 @@
 import { encodeCkbAddress, decodeCkbAddress } from "@ckb-cobuild/ckb-address";
 import { ckbHasher } from "@ckb-cobuild/ckb-hasher";
 import { decodeHex } from "@ckb-cobuild/hex-encoding";
+import { bech32 } from "bech32";
+
+export { encodeCkbAddress, decodeCkbAddress };
 
 export function arrayEqual(a, b) {
   if (a.length === b.length) {
@@ -67,4 +70,26 @@ export function generateMultisigAddress(config, prefix) {
   };
 
   return encodeCkbAddress(script, prefix);
+}
+
+export function decodeDeprecatedSecp256k1Address(address) {
+  const { prefix, words } = bech32.decode(address, 1023);
+  if (prefix !== "ckb" && prefix !== "ckt") {
+    return;
+  }
+
+  const [formatType, ...body] = bech32.fromWords(words);
+
+  // payload = 0x01 | code_hash_index | args
+  if (formatType === 1) {
+    const [shortId, ...args] = body;
+    // secp256k1
+    if (shortId === 0 && args.length === 20) {
+      return {
+        code_hash: SECP256K1_CODE_HASH,
+        hash_type: "type",
+        args: Uint8Array.from(args),
+      };
+    }
+  }
 }
