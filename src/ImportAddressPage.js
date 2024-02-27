@@ -1,6 +1,7 @@
 import { Alert, Button, FileInput } from "flowbite-react";
 import { useState } from "react";
 import { importMultisigAddresses } from "./lib/multisig-address.js";
+import { readAsText } from "./lib/file-upload.js";
 
 const ERROR_MESSAGE = "Opps, error occurs when processing the uploaded file";
 
@@ -10,36 +11,16 @@ export default function NewAddressPage({ addAddress, navigate }) {
     error: null,
   });
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setState({ isProcessing: true, error: null });
 
     try {
-      const reader = new FileReader();
-
-      reader.addEventListener("load", (loaded) => {
-        try {
-          const addresses = importMultisigAddresses(
-            JSON.parse(loaded.target.result),
-          );
-          addAddress(addresses);
-          navigate("#/");
-        } catch (error) {
-          setState({
-            isProcessing: false,
-            error: `${ERROR_MESSAGE}: ${error}`,
-          });
-        }
-      });
-      reader.addEventListener("error", () => {
-        setState({ isProcessing: false, error: ERROR_MESSAGE });
-      });
-      reader.addEventListener("abort", () => {
-        setState({ isProcessing: false, error: "Uploading aborted" });
-      });
-
       const fileInput = document.getElementById("file-upload");
-      reader.readAsText(fileInput.files[0]);
+      const fileContent = await readAsText(fileInput.files[0]);
+      const addresses = importMultisigAddresses(JSON.parse(fileContent));
+      addAddress(addresses);
+      navigate("#/");
     } catch (error) {
       setState({
         isProcessing: false,
