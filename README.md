@@ -4,11 +4,35 @@
 
 ## Disclaimer
 
-TODO
+This is a Proof-of-Concept demo to show how to use the building packet lock actions in [CoBuild](https://talk.nervos.org/t/ckb-transaction-cobuild-protocol-overview/7702) to collect multisig signatures.
 
 ## Background
 
-TODO
+This PoC utilizes the CoBuild building packet as an intermediate format for enabling collaboration among various tools in the collection of multisig signatures. Currently, it supports ckb-cli and Neuron.
+
+CoBuild enables lock scripts to include their pending actions in the `lock_actions` field of the building packet.
+
+This PoC defines `MultisigAction` to store the mulgisig config and collected signatures.
+
+```
+array PubkeyHash [byte; 20];
+vector PubkeyHashVec <PubkeyHash>;
+table MultisigConfig {
+    require_first_n: byte,
+    threshold: byte,
+    signer_pubkey_hashes: PubkeyHashVec,
+}
+array Signature [byte; 65];
+struct PubkeyHashSignaturePair {
+    pubkey_hash: PubkeyHash,
+    signature: Signature,
+}
+vector PubkeyHashSignaturePairVec <PubkeyHashSignaturePair>;
+table MultisigAction {
+    config: MultisigConfig,
+    signed: PubkeyHashSignaturePairVec,
+}
+```
 
 ## Getting Started
 

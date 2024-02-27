@@ -5,8 +5,9 @@ import { decodeHex } from "@ckb-cobuild/hex-encoding";
 test("buildScriptInfo", () => {
   const { schema, ...remaining } = buildScriptInfo();
 
-  expect(schema).toMatchInlineSnapshot(`
-"array PubkeyHash [byte; 20];
+  expect(schema).toMatch(
+    `
+array PubkeyHash [byte; 20];
 vector PubkeyHashVec <PubkeyHash>;
 table MultisigConfig {
     require_first_n: byte,
@@ -22,8 +23,9 @@ vector PubkeyHashSignaturePairVec <PubkeyHashSignaturePair>;
 table MultisigAction {
     config: MultisigConfig,
     signed: PubkeyHashSignaturePairVec,
-}"
-`);
+}
+    `.trim(),
+  );
   expect(toJson(remaining)).toMatchSnapshot();
 });
 

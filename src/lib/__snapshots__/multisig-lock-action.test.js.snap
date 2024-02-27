@@ -8,7 +8,7 @@ Object {
 }
 `;
 
-exports[`buildScriptInfo 2`] = `
+exports[`buildScriptInfo 1`] = `
 Object {
   "message_type": "MultisigAction",
   "name": "secp256k1_blake160_multisig_all",
