@@ -73,23 +73,25 @@ export function generateMultisigAddress(config, prefix) {
 }
 
 export function decodeDeprecatedSecp256k1Address(address) {
-  const { prefix, words } = bech32.decode(address, 1023);
-  if (prefix !== "ckb" && prefix !== "ckt") {
-    return;
-  }
-
-  const [formatType, ...body] = bech32.fromWords(words);
-
-  // payload = 0x01 | code_hash_index | args
-  if (formatType === 1) {
-    const [shortId, ...args] = body;
-    // secp256k1
-    if (shortId === 0 && args.length === 20) {
-      return {
-        code_hash: SECP256K1_CODE_HASH,
-        hash_type: "type",
-        args: Uint8Array.from(args),
-      };
+  try {
+    const { prefix, words } = bech32.decode(address, 1023);
+    if (prefix !== "ckb" && prefix !== "ckt") {
+      return;
     }
-  }
+
+    const [formatType, ...body] = bech32.fromWords(words);
+
+    // payload = 0x01 | code_hash_index | args
+    if (formatType === 1) {
+      const [shortId, ...args] = body;
+      // secp256k1
+      if (shortId === 0 && args.length === 20) {
+        return {
+          code_hash: SECP256K1_CODE_HASH,
+          hash_type: "type",
+          args: Uint8Array.from(args),
+        };
+      }
+    }
+  } catch (_error) {}
 }

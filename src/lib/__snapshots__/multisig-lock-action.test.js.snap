@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`buildAction 1`] = `
+Object {
+  "data": "0xb70000000c0000005e000000520000001000000011000000120000000002030000002910442b8955ddcc0d4c43919b2c98d7e5435434c8328aabcd9b9e8e64fbc566c4385c3bdeb219d7a656b9d66546084489ca979d95ca8d78ceb6764b010000002910442b8955ddcc0d4c43919b2c98d7e5435434743ea11867222e96da5b27dbdd63cec1bae3217e6a6c71a2a60abe602f43e7273f3cb25e88b6d00c19ea1dcb155dfd282a610e49d7a6e115aa8a058b451ca4a001",
+  "script_hash": "0x4ea8cdacceaba6dbfbd287535ed69395709246f1a9dd5485e30389bffed07b69",
+  "script_info_hash": "0xa95d38f80309e7ac7a343f28d2f5f65a324ccd1fa5937cfc1615d1f9150eb2ac",
+}
+`;
+
+exports[`buildScriptInfo 2`] = `
+Object {
+  "message_type": "MultisigAction",
+  "name": "secp256k1_blake160_multisig_all",
+  "script_hash": "0x1db3f661729719d90e8efe0cf33c6eba99225824536a6ce5a03ca0b3809c6344",
+  "url": "https://github.com/nervosnetwork/ckb-system-scripts/blob/master/c/secp256k1_blake160_multisig_all.c",
+}
+`;
