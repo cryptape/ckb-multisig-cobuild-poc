@@ -3,7 +3,7 @@ import DeleteButton from "./components/DeleteButton.js";
 
 function AddressesList({ navigate, addresses, deleteAddress }) {
   return (
-    <section>
+    <section className="mb-8">
       <h2 className="text-lg border-b-2 mb-4">Mulgisig Addresses</h2>
       <ul className="mb-4">
         {addresses.map((address) => (
@@ -27,12 +27,31 @@ function AddressesList({ navigate, addresses, deleteAddress }) {
     </section>
   );
 }
+
+function TransactionsList({ navigate }) {
+  return (
+    <section className="mb-8">
+      <h2 className="text-lg border-b-2 mb-4">Transactions</h2>
+      <div className="mb-4 flex flex-row gap-2 flex-wrap">
+        <Button onClick={() => navigate("#/transactions/import")}>
+          Import Transaction
+        </Button>
+      </div>
+      <p className="text-sm">
+        Importing will automatically merge collected signatures for the same
+        transaction.
+      </p>
+    </section>
+  );
+}
+
 export default function IndexPage({ navigate, state, deleteAddress }) {
   return (
     <>
       <AddressesList
         {...{ navigate, deleteAddress, addresses: state.addresses }}
       />
+      <TransactionsList {...{ navigate }} />
     </>
   );
 }

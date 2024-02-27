@@ -2,10 +2,11 @@ import { Spinner } from "flowbite-react";
 import { Suspense, useTransition } from "react";
 import { useHash } from "react-use";
 import AddressPage from "./AddressPage.js";
+import ImportAddressPage from "./ImportAddressPage.js";
+import ImportTransactionPage from "./ImportTransactionPage.js";
 import IndexPage from "./IndexPage.js";
 import Layout from "./Layout.js";
 import NewAddressPage from "./NewAddressPage.js";
-import ImportAddressPage from "./ImportAddressPage.js";
 import usePersistReducer from "./reducer.js";
 
 function App() {
@@ -34,6 +35,7 @@ function Router() {
     "#/addresses/import": () => (
       <ImportAddressPage {...{ navigate, addAddress }} />
     ),
+    "#/transactions/import": () => <ImportTransactionPage />,
   };
   staticRoutes[""] = staticRoutes["#/"];
   const dynamicRoutes = [
