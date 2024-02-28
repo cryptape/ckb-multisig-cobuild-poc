@@ -24,14 +24,18 @@ function findAddress(state, args) {
 function Router() {
   const [page, setPage] = useHash();
   const [isPending, startTransition] = useTransition();
-  const [state, { addAddress, deleteAddress, addTransaction }] =
-    usePersistReducer();
+  const [
+    state,
+    { addAddress, deleteAddress, addTransaction, deleteTransaction },
+  ] = usePersistReducer();
 
   const navigate = (url) => startTransition(() => setPage(url));
 
   const fallbackRoute = () => <NotFound {...{ page, navigate }} />;
   const staticRoutes = {
-    "#/": () => <IndexPage {...{ navigate, state, deleteAddress }} />,
+    "#/": () => (
+      <IndexPage {...{ navigate, state, deleteAddress, deleteTransaction }} />
+    ),
     "#/addresses/new": () => <NewAddressPage {...{ navigate, addAddress }} />,
     "#/addresses/import": () => (
       <ImportAddressPage {...{ navigate, addAddress }} />

@@ -1,4 +1,4 @@
-import { Button } from "flowbite-react";
+import { Button, Badge } from "flowbite-react";
 import DeleteButton from "./components/DeleteButton.js";
 
 function AddressesList({ navigate, addresses, deleteAddress }) {
@@ -30,10 +30,33 @@ function AddressesList({ navigate, addresses, deleteAddress }) {
 
 const IMPORT_PAGE = "#/transactions/import";
 
-function TransactionsList({ navigate }) {
+function TransactionsList({ navigate, transactions, deleteTransaction }) {
   return (
     <section className="mb-8">
       <h2 className="text-lg border-b-2 mb-4">Transactions</h2>
+
+      <ul className="mb-4">
+        {transactions.map((tx) => (
+          <li
+            key={`tx-${tx.buildingPacket.value.payload.hash}`}
+            className="font-mono flex flex-row gap-2 items-center p-2 hover:bg-slate-100"
+          >
+            <a
+              className="grow break-all"
+              href={`#/transactions/${tx.buildingPacket.value.payload.hash}`}
+            >
+              {tx.buildingPacket.value.payload.hash}
+            </a>
+            <Badge>{tx.state}</Badge>
+            <DeleteButton
+              onClick={() =>
+                deleteTransaction(tx.buildingPacket.value.payload.hash)
+              }
+            />
+          </li>
+        ))}
+      </ul>
+
       <div className="mb-8 flex flex-row gap-2 flex-wrap">
         <Button onClick={() => navigate(IMPORT_PAGE)}>
           Import Transaction
@@ -99,13 +122,20 @@ function TransactionsList({ navigate }) {
   );
 }
 
-export default function IndexPage({ navigate, state, deleteAddress }) {
+export default function IndexPage({
+  navigate,
+  state,
+  deleteAddress,
+  deleteTransaction,
+}) {
   return (
     <>
       <AddressesList
         {...{ navigate, deleteAddress, addresses: state.addresses }}
       />
-      <TransactionsList {...{ navigate }} />
+      <TransactionsList
+        {...{ navigate, deleteTransaction, transactions: state.transactions }}
+      />
     </>
   );
 }

@@ -21,7 +21,7 @@ export default function ImportTransactionPage({ addTransaction, navigate }) {
       const transaction = importTransaction(JSON.parse(fileContent));
       addTransaction(transaction);
       navigate(
-        `#/transaction/${transaction.buildingPacket.value.payload.hash}`,
+        `#/transactions/${transaction.buildingPacket.value.payload.hash}`,
       );
     } catch (error) {
       setState({

@@ -4,6 +4,7 @@ import {
   RawTransaction,
 } from "@ckb-cobuild/ckb-molecule-codecs";
 import { toJson } from "@ckb-cobuild/molecule";
+import { decodeHex } from "@ckb-cobuild/hex-encoding";
 import { ckbHasher } from "@ckb-cobuild/ckb-hasher";
 import {
   SCRIPT_INFO,
@@ -49,6 +50,7 @@ export function importFromCkbCli(jsonContent) {
 
   return toJson({
     pendingSecp256k1Signatures: jsonContent.signatures,
+    state: "pending",
     buildingPacket,
   });
 }
@@ -68,8 +70,32 @@ export function resolvePendingSecp256k1Signatures(transaction) {
   const lockActions = [];
   const witnesses = [];
 
+  // TODO: handle pending signatures
+
   mergeLockActions(transaction, lockActions);
   mergeWitnesses(transaction, witnesses);
+}
+
+export function isReady(transaction) {
+  if (
+    Array.from(Object.entries(transaction.pendingSecp256k1Signatures)).length >
+    0
+  ) {
+    return false;
+  }
+
+  for (const lockAction of transaction.buildingPacket.value.lock_actions) {
+    if (lockAction.script_info_hash == toJson(SCRIPT_INFO_HASH)) {
+      const actionData = MultisigConfig.unpack(
+        decodeHex(lockAction.data.slice(2)),
+      );
+      if (actionData.signed.length < actionData.config.threshold) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 function mergeLockActions(target, lockActions) {
@@ -84,8 +110,12 @@ function mergeLockActions(target, lockActions) {
       // non-multisig lock action, just overwrite
       Object.assign(existing, lockAction);
     } else {
-      const existingData = MultisigConfig.unpack(existing.data);
-      const newData = MultisigConfig.unpack(lockAction.data);
+      const existingData = MultisigConfig.unpack(
+        decodeHex(existing.data.slice(2)),
+      );
+      const newData = MultisigConfig.unpack(
+        decodeHex(lockAction.data.slice(2)),
+      );
       for (const sig of newData.signed) {
         const newPubKeyHash = toJson(sig.pubkey_hash);
         const existingSigIndex = existingData.findIndex(
@@ -96,7 +126,7 @@ function mergeLockActions(target, lockActions) {
         }
         existingData.signed.push(sig);
       }
-      existing.data = MultisigConfig.pack(existingData);
+      existing.data = toJson(MultisigConfig.pack(existingData));
     }
   }
 }
@@ -131,5 +161,9 @@ export function mergeTransaction(target, from) {
 
   if (target.buildingPacket.value.resolved_inputs.outputs.length > 0) {
     resolvePendingSecp256k1Signatures(target);
+  }
+
+  if (target.state === "pending" && isReady(target)) {
+    target.state = "ready";
   }
 }
