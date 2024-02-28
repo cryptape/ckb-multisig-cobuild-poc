@@ -89,7 +89,7 @@ export function isReady(transaction) {
   }
 
   for (const lockAction of transaction.buildingPacket.value.lock_actions) {
-    if (lockAction.script_info_hash == toJson(SCRIPT_INFO_HASH)) {
+    if (lockAction.script_info_hash === toJson(SCRIPT_INFO_HASH)) {
       const actionData = MultisigConfig.unpack(
         decodeHex(lockAction.data.slice(2)),
       );
