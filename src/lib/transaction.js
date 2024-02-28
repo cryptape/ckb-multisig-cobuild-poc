@@ -68,13 +68,15 @@ export function importTransaction(jsonContent) {
 }
 
 export function resolvePendingSecp256k1Signatures(transaction) {
-  // TODO: implement
-  return transaction;
+  const lockActions = [];
+  const witnesses = [];
+
+  mergeLockActions(transaction, lockActions);
+  mergeWitnesses(transaction, witnesses);
 }
 
-export function mergeTransaction(target, from) {
-  // 1. Merge lockActions
-  for (const lockAction of from.buildingPacket.value.lock_actions) {
+function mergeLockActions(target, lockActions) {
+  for (const lockAction of lockActions) {
     // Assume that Action.script_hash must be unique
     const existing = target.buildingPacket.value.lock_actions.find(
       (item) => item.script_hash === lockAction.script_hash,
@@ -97,10 +99,23 @@ export function mergeTransaction(target, from) {
         }
         existingData.signed.push(sig);
       }
+      existing.data = MultisigConfig.pack(existingData);
     }
   }
+}
 
-  // 2. Merge pendingSecp256k1Signatures
+function mergeWitnesses(target, witnesses) {
+  for (const [i, witness] of witnesses) {
+    if (witness !== null && witness !== undefined && witness !== "0x") {
+      target.buildingPacket.value.payload.witnesses[i] = witness;
+    }
+  }
+}
+
+export function mergeTransaction(target, from) {
+  mergeLockActions(target, from.buildingPacket.value.lock_actions);
+
+  // Merge pendingSecp256k1Signatures
   for (const [args, signatures] of Object.entries(
     from.pendingSecp256k1Signatures,
   )) {
@@ -115,12 +130,7 @@ export function mergeTransaction(target, from) {
     }
   }
 
-  // 3. Merge witnesses
-  for (const [i, witness] of from.buildingPacket.value.payload.witnesses) {
-    if (witness !== null && witness !== undefined && witness !== "0x") {
-      target.buildingPacket.value.payload.witnesses[i] = witness;
-    }
-  }
+  mergeWitnesses(target, from.buildingPacket.value.payload.witnesses);
 
   if (target.buildingPacket.value.resolved_inputs.outputs.length > 0) {
     resolvePendingSecp256k1Signatures(target);
