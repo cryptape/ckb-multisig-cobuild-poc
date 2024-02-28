@@ -20,6 +20,9 @@ dependencies:
   '@ckb-cobuild/hex-encoding':
     specifier: ^1.0.0
     version: 1.0.0
+  '@ckb-cobuild/jsonrpc-client':
+    specifier: ^1.0.0
+    version: 1.0.0
   '@ckb-cobuild/molecule':
     specifier: ^1.1.0
     version: 1.1.0
@@ -1584,6 +1587,10 @@ packages:
 
   /@ckb-cobuild/hex-encoding@1.0.0:
     resolution: {integrity: sha512-PSbL304Kpi2GXUe4ytLyan2q+QbNtx1zWBm4ycknKjMz1G/XUGy4nW/ES/AejOxK2bvCcRB9+1G9MJHEcLaFUg==}
+    dev: false
+
+  /@ckb-cobuild/jsonrpc-client@1.0.0:
+    resolution: {integrity: sha512-jh0seQCTmW/ys31dLjWToD5NoXZ4e4+G7+EoY1UsXha+vRHURb2kwg5Xv5AFFx2IQKHdFBn8lOd42TGPgVH3pg==}
     dev: false
 
   /@ckb-cobuild/molecule@1.1.0:

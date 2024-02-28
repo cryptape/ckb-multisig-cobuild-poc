@@ -7,7 +7,11 @@ import ImportTransactionPage from "./ImportTransactionPage.js";
 import IndexPage from "./IndexPage.js";
 import Layout from "./Layout.js";
 import NewAddressPage from "./NewAddressPage.js";
-import usePersistReducer from "./reducer.js";
+import TransactionPage from "./TransactionPage.js";
+import usePersistReducer, {
+  findAddressByArgs,
+  findTransactionByHash,
+} from "./reducer.js";
 
 function App() {
   return (
@@ -17,16 +21,18 @@ function App() {
   );
 }
 
-function findAddress(state, args) {
-  return state.addresses.find((address) => address.args === args);
-}
-
 function Router() {
   const [page, setPage] = useHash();
   const [isPending, startTransition] = useTransition();
   const [
     state,
-    { addAddress, deleteAddress, addTransaction, deleteTransaction },
+    {
+      addAddress,
+      deleteAddress,
+      addTransaction,
+      deleteTransaction,
+      resolveInputs,
+    },
   ] = usePersistReducer();
 
   const navigate = (url) => startTransition(() => setPage(url));
@@ -50,16 +56,39 @@ function Router() {
       "#/addresses/duplicate/",
       (args) => (
         <NewAddressPage
-          {...{ navigate, addAddress, template: findAddress(state, args) }}
+          {...{
+            navigate,
+            addAddress,
+            template: findAddressByArgs(state, args),
+          }}
         />
       ),
     ],
     [
       "#/addresses/",
       (args) => {
-        const address = findAddress(state, args);
+        const address = findAddressByArgs(state, args);
         return address ? (
           <AddressPage {...{ address, deleteAddress, navigate }} />
+        ) : (
+          fallbackRoute()
+        );
+      },
+    ],
+    [
+      "#/transactions/",
+      (hash) => {
+        const transaction = findTransactionByHash(state, hash);
+        return transaction ? (
+          <TransactionPage
+            {...{
+              transaction,
+              navigate,
+              deleteTransaction,
+              resolveInputs,
+              endpoint: state.endpoint,
+            }}
+          />
         ) : (
           fallbackRoute()
         );

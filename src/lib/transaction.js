@@ -49,7 +49,7 @@ export function importFromCkbCli(jsonContent) {
   };
 
   return toJson({
-    pendingSecp256k1Signatures: jsonContent.signatures,
+    pendingSignatures: jsonContent.signatures,
     state: "pending",
     buildingPacket,
   });
@@ -72,7 +72,7 @@ export function checkIsReady(transaction) {
   }
 }
 
-export function resolvePendingSecp256k1Signatures(transaction) {
+export function resolvePendingSignatures(transaction) {
   const lockActions = [];
   const witnesses = [];
 
@@ -84,10 +84,7 @@ export function resolvePendingSecp256k1Signatures(transaction) {
 }
 
 export function isReady(transaction) {
-  if (
-    Array.from(Object.entries(transaction.pendingSecp256k1Signatures)).length >
-    0
-  ) {
+  if (Array.from(Object.entries(transaction.pendingSignatures)).length > 0) {
     return false;
   }
 
@@ -149,25 +146,23 @@ function mergeWitnesses(target, witnesses) {
 export function mergeTransaction(target, from) {
   mergeLockActions(target, from.buildingPacket.value.lock_actions);
 
-  // Merge pendingSecp256k1Signatures
-  for (const [args, signatures] of Object.entries(
-    from.pendingSecp256k1Signatures,
-  )) {
-    if (args in target.pendingSecp256k1Signatures) {
+  // Merge pending signatures
+  for (const [args, signatures] of Object.entries(from.pendingSignatures)) {
+    if (args in target.pendingSignatures) {
       for (const signature of signatures) {
-        if (!target.pendingSecp256k1Signatures[args].includes(signature)) {
-          target.pendingSecp256k1Signatures[args].push(signature);
+        if (!target.pendingSignatures[args].includes(signature)) {
+          target.pendingSignatures[args].push(signature);
         }
       }
     } else {
-      target.pendingSecp256k1Signatures[args] = signatures;
+      target.pendingSignatures[args] = signatures;
     }
   }
 
   mergeWitnesses(target, from.buildingPacket.value.payload.witnesses);
 
   if (target.buildingPacket.value.resolved_inputs.outputs.length > 0) {
-    resolvePendingSecp256k1Signatures(target);
+    resolvePendingSignatures(target);
   } else {
     checkIsReady(target);
   }

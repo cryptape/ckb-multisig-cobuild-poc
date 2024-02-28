@@ -2,14 +2,22 @@ import { current } from "immer";
 import { useCallback } from "react";
 import { useLocalStorage } from "react-use";
 import { useImmerReducer } from "use-immer";
-import { mergeTransaction } from "./lib/transaction.js";
+import {
+  mergeTransaction,
+  resolvePendingSignatures,
+} from "./lib/transaction.js";
 
 const LOCAL_STORAGE_KEY = "ckb-multisig";
 
 const INITIAL_STATE = {
+  endpoint: "https://testnet.ckbapp.dev/",
   addresses: [],
   transactions: [],
 };
+
+export function findAddressByArgs(state, args) {
+  return state.addresses.find((address) => address.args === args);
+}
 
 function deleteAddressByArgs(draft, args) {
   const index = draft.addresses.findIndex((address) => address.args === args);
@@ -18,8 +26,8 @@ function deleteAddressByArgs(draft, args) {
   }
 }
 
-function findTransactionByHash(draft, hash) {
-  return draft.transactions.find(
+export function findTransactionByHash(state, hash) {
+  return state.transactions.find(
     (tx) => tx.buildingPacket.value.payload.hash === hash,
   );
 }
@@ -60,6 +68,14 @@ function reducer(draft, action) {
       break;
     case "deleteTransaction":
       deleteTransactionByHash(draft, action.payload);
+      break;
+    case "resolveInputs":
+      draft.endpoint = action.payload.endpoint;
+      const tx = findTransactionByHash(draft, action.payload.hash);
+      if (tx !== undefined) {
+        tx.buildingPacket.value.resolved_inputs = action.payload.resolvedInputs;
+        resolvePendingSignatures(tx);
+      }
       break;
     default:
       throw new Error(`Unknown action type ${action.type}`);
@@ -109,9 +125,23 @@ const usePersistReducer = () => {
     (hash) => dispatch({ type: "deleteTransaction", payload: hash }),
     [dispatch],
   );
+  const resolveInputs = useCallback(
+    (endpoint, hash, resolvedInputs) =>
+      dispatch({
+        type: "resolveInputs",
+        payload: { endpoint, hash, resolvedInputs },
+      }),
+    [dispatch],
+  );
   return [
     state,
-    { addAddress, deleteAddress, addTransaction, deleteTransaction },
+    {
+      addAddress,
+      deleteAddress,
+      addTransaction,
+      deleteTransaction,
+      resolveInputs,
+    },
   ];
 };
 
