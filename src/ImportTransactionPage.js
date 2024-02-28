@@ -1,13 +1,42 @@
-import { Button, FileInput } from "flowbite-react";
+import { Alert, Button, FileInput } from "flowbite-react";
+import { useState } from "react";
+import { readAsText } from "./lib/file-upload.js";
+import { importTransaction } from "./lib/transaction.js";
 
-export default function ImportTransactionPage() {
-  const submit = () => {
-    console.log("submit");
+const ERROR_MESSAGE = "Opps, error occurs when processing the uploaded file";
+
+export default function ImportTransactionPage({ addTransaction, navigate }) {
+  const [state, setState] = useState({
+    isProcessing: false,
+    error: null,
+  });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setState({ isProcessing: true, error: null });
+
+    try {
+      const fileInput = document.getElementById("file-upload");
+      const fileContent = await readAsText(fileInput.files[0]);
+      const transaction = importTransaction(JSON.parse(fileContent));
+      addTransaction(transaction);
+      navigate(`#/transaction/${transaction.hash}`);
+    } catch (error) {
+      setState({
+        isProcessing: false,
+        error: `${ERROR_MESSAGE}: ${error}`,
+      });
+    }
   };
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
       <h2 className="text-lg mb-4">Import Transaction</h2>
+      {state.error ? (
+        <Alert className="mb-4" color="failure">
+          {state.error}
+        </Alert>
+      ) : null}
 
       <p>
         Import a new transaction. If the transaction exists, any new signatures
@@ -28,6 +57,13 @@ export default function ImportTransactionPage() {
         </ul>
         <FileInput id="file-upload" name="file-upload" required />
       </div>
+      <Button
+        isProcessing={state.isProcessing}
+        disabled={state.isProcessing}
+        type="submit"
+      >
+        Import
+      </Button>
     </form>
   );
 }
