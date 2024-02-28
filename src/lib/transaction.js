@@ -113,7 +113,7 @@ function mergeLockActions(target, lockActions) {
     );
     if (existing === undefined) {
       target.buildingPacket.value.lock_actions.push(lockAction);
-    } else if (lockAction.script_info_hash != toJson(SCRIPT_INFO_HASH)) {
+    } else if (lockAction.script_info_hash !== toJson(SCRIPT_INFO_HASH)) {
       // non-multisig lock action, just overwrite
       Object.assign(existing, lockAction);
     } else {
