@@ -24,7 +24,8 @@ function findAddress(state, args) {
 function Router() {
   const [page, setPage] = useHash();
   const [isPending, startTransition] = useTransition();
-  const [state, { addAddress, deleteAddress }] = usePersistReducer();
+  const [state, { addAddress, deleteAddress, addTransaction }] =
+    usePersistReducer();
 
   const navigate = (url) => startTransition(() => setPage(url));
 
@@ -35,7 +36,9 @@ function Router() {
     "#/addresses/import": () => (
       <ImportAddressPage {...{ navigate, addAddress }} />
     ),
-    "#/transactions/import": () => <ImportTransactionPage />,
+    "#/transactions/import": () => (
+      <ImportTransactionPage {...{ navigate, addTransaction }} />
+    ),
   };
   staticRoutes[""] = staticRoutes["#/"];
   const dynamicRoutes = [

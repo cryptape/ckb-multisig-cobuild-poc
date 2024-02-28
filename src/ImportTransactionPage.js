@@ -20,7 +20,9 @@ export default function ImportTransactionPage({ addTransaction, navigate }) {
       const fileContent = await readAsText(fileInput.files[0]);
       const transaction = importTransaction(JSON.parse(fileContent));
       addTransaction(transaction);
-      navigate(`#/transaction/${transaction.hash}`);
+      navigate(
+        `#/transaction/${transaction.buildingPacket.value.payload.hash}`,
+      );
     } catch (error) {
       setState({
         isProcessing: false,
