@@ -42,9 +42,10 @@ function deleteTransactionByHash(draft, hash) {
 }
 
 function reducer(draft, action) {
+  let addresses, tx;
   switch (action.type) {
     case "addAddress":
-      const addresses = Array.isArray(action.payload)
+      addresses = Array.isArray(action.payload)
         ? action.payload
         : [action.payload];
       for (const address of addresses) {
@@ -56,14 +57,14 @@ function reducer(draft, action) {
       deleteAddressByArgs(draft, action.payload);
       break;
     case "addTransaction":
-      const existing = findTransactionByHash(
+      tx = findTransactionByHash(
         draft,
         action.payload.buildingPacket.value.payload.hash,
       );
-      if (existing === undefined) {
+      if (tx === undefined) {
         draft.transactions.push(action.payload);
       } else {
-        mergeTransaction(existing, action.payload);
+        mergeTransaction(tx, action.payload);
       }
       break;
     case "deleteTransaction":
@@ -71,7 +72,7 @@ function reducer(draft, action) {
       break;
     case "resolveInputs":
       draft.endpoint = action.payload.endpoint;
-      const tx = findTransactionByHash(draft, action.payload.hash);
+      tx = findTransactionByHash(draft, action.payload.hash);
       if (tx !== undefined) {
         tx.buildingPacket.value.resolved_inputs = action.payload.resolvedInputs;
         resolvePendingSignatures(tx);

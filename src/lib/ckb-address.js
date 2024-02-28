@@ -93,5 +93,7 @@ export function decodeDeprecatedSecp256k1Address(address) {
         };
       }
     }
-  } catch (_error) {}
+  } catch (_error) {
+    // ignore
+  }
 }
