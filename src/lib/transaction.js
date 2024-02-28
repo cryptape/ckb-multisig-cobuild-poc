@@ -6,13 +6,10 @@ import {
 import { toJson } from "@ckb-cobuild/molecule";
 import { ckbHasher } from "@ckb-cobuild/ckb-hasher";
 import {
-  buildAction,
   SCRIPT_INFO,
   SCRIPT_INFO_HASH,
   MultisigConfig,
 } from "./multisig-lock-action.js";
-import { convertDeprecatedSecp256k1Address } from "./multisig-address.js";
-import { decodeCkbAddress } from "./ckb-address.js";
 
 /**
  * Import transaction from the ckb-cli tx JSON.
