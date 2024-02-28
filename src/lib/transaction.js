@@ -66,6 +66,12 @@ export function importTransaction(jsonContent) {
   throw new Error("Unknown JSON format");
 }
 
+export function checkIsReady(transaction) {
+  if (transaction.state === "pending" && isReady(transaction)) {
+    transaction.state = "ready";
+  }
+}
+
 export function resolvePendingSecp256k1Signatures(transaction) {
   const lockActions = [];
   const witnesses = [];
@@ -74,6 +80,7 @@ export function resolvePendingSecp256k1Signatures(transaction) {
 
   mergeLockActions(transaction, lockActions);
   mergeWitnesses(transaction, witnesses);
+  checkIsReady(transaction);
 }
 
 export function isReady(transaction) {
@@ -161,9 +168,7 @@ export function mergeTransaction(target, from) {
 
   if (target.buildingPacket.value.resolved_inputs.outputs.length > 0) {
     resolvePendingSecp256k1Signatures(target);
-  }
-
-  if (target.state === "pending" && isReady(target)) {
-    target.state = "ready";
+  } else {
+    checkIsReady(target);
   }
 }
