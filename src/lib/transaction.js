@@ -28,6 +28,15 @@ const SCRIPT_INFO_HASH_HEX = toJson(SCRIPT_INFO_HASH);
 const SECP256K1_CODE_HASH_HEX = toJson(SECP256K1_CODE_HASH);
 const SECP256K1_MULTISIG_CODE_HASH_HEX = toJson(SECP256K1_MULTISIG_CODE_HASH);
 
+function computeScriptHash(script) {
+  return (
+    "0x" +
+    ckbHasher()
+      .update(Script.pack(Script.parse(script)))
+      .digest("hex")
+  );
+}
+
 /**
  * Import transaction from the ckb-cli tx JSON.
  *
@@ -123,18 +132,7 @@ export function resolvePendingSignatures(transaction) {
           );
         }
       } else if (output.lock.code_hash === SECP256K1_MULTISIG_CODE_HASH_HEX) {
-        const scriptHash =
-          "0x" +
-          ckbHasher()
-            .update(
-              Script.pack({
-                code_hash: SECP256K1_MULTISIG_CODE_HASH,
-                hash_type: "type",
-                args: decodeHex(lockArgs.slice(2)),
-              }),
-            )
-            .digest("hex");
-
+        const scriptHash = computeScriptHash(output.lock);
         const lockAction = transaction.buildingPacket.value.lock_actions.find(
           (item) => item.script_hash === scriptHash,
         );
@@ -336,11 +334,7 @@ function updateMultisigWitnesses(tx) {
         inputIndex,
         output,
       ] of tx.buildingPacket.value.resolved_inputs.outputs.entries()) {
-        const scriptHash =
-          "0x" +
-          ckbHasher()
-            .update(Script.pack(Script.parse(output.lock)))
-            .digest("hex");
+        const scriptHash = computeScriptHash(output.lock);
         if (scriptHash === lockAction.script_hash) {
           const lockWitness = new Uint8Array(
             4 +
@@ -379,4 +373,64 @@ function updateMultisigWitnesses(tx) {
       }
     }
   }
+}
+
+export function groupByLockScript(buildingPacketJson) {
+  const map = new Map();
+  for (const [
+    index,
+    output,
+  ] of buildingPacketJson.value.resolved_inputs.outputs.entries()) {
+    const scriptHash = computeScriptHash(output.lock);
+    const cell = {
+      index,
+      output,
+      data: buildingPacketJson.value.resolved_inputs.outputs_data[index],
+    };
+    if (map.has(scriptHash)) {
+      map.get(scriptHash).inputs.push(cell);
+    } else {
+      map.set(scriptHash, {
+        inputs: [cell],
+        outputs: [],
+      });
+    }
+  }
+
+  for (const [
+    index,
+    output,
+  ] of buildingPacketJson.value.payload.outputs.entries()) {
+    const scriptHash = computeScriptHash(output.lock);
+    const cell = {
+      index,
+      output,
+      data: buildingPacketJson.value.payload.outputs_data[index],
+    };
+    if (map.has(scriptHash)) {
+      map.get(scriptHash).outputs.push(cell);
+    } else {
+      map.set(scriptHash, {
+        inputs: [],
+        outputs: [cell],
+      });
+    }
+  }
+
+  for (const group of map.values()) {
+    if (group.inputs.length > 0) {
+      group.witness =
+        buildingPacketJson.value.payload.witnesses[group.inputs[0].index] ??
+        "0x";
+    }
+  }
+
+  for (const lockAction of buildingPacketJson.value.lock_actions) {
+    const group = map.get(lockAction.script_hash);
+    group.multisigActionData = toJson(
+      MultisigAction.unpack(decodeHex(lockAction.data.slice(2))),
+    );
+  }
+
+  return map;
 }

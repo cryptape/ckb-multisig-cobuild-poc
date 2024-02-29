@@ -1,7 +1,17 @@
+import { Script } from "@ckb-cobuild/ckb-molecule-codecs";
 import { createJsonRpcClient } from "@ckb-cobuild/jsonrpc-client";
-import { Alert, Button, Label, TextInput } from "flowbite-react";
+import {
+  Accordion,
+  Alert,
+  Badge,
+  Button,
+  Label,
+  TextInput,
+} from "flowbite-react";
 import { useState } from "react";
 import DeleteButton from "./components/DeleteButton.js";
+import { encodeCkbAddress } from "./lib/ckb-address.js";
+import { groupByLockScript } from "./lib/transaction.js";
 
 function isEmpty(obj) {
   for (const prop in obj) {
@@ -99,8 +109,100 @@ function ResolveInputs({ endpoint, transaction, resolveInputs }) {
   );
 }
 
-function TransactionDetails() {
-  // TODO: TransactionDetails
+const KNOWN_SCRIPT_NAME = {
+  "0x00000000000000000000000000000000000000000000000000545950455f4944":
+    "typeid",
+  "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8":
+    "secp256k1_blake160",
+  "0x5c5069eb0857efc65e1bca0c07df34c31663b3622fd3876c876320fc9634e2a8":
+    "secp256k1_blake160_multisig",
+  "0x82d76d1b75fe2fd9a27dfbaa65a039221a380d76c926f378d3f81cf3e7e13f2e": "dao",
+};
+
+function shortAddress(address) {
+  return address.length <= 29
+    ? address
+    : `${address.slice(0, 13)}...${address.slice(address.length - 13)}`;
+}
+
+function LockGroupTitle({ group }) {
+  const lockScript = (group.inputs[0] ?? group.outputs[0]).output.lock;
+  const lockScriptName = KNOWN_SCRIPT_NAME[lockScript.code_hash] ?? "unknown";
+  const mainnetAddress = encodeCkbAddress(Script.parse(lockScript), "ckb");
+  return (
+    <>
+      <code className="break-all font-mono">
+        {shortAddress(mainnetAddress)}
+      </code>
+      <Badge className="ml-4 inline-block">{lockScriptName}</Badge>
+    </>
+  );
+}
+
+function formatCapacity(capacity, options = {}) {
+  capacity = BigInt(capacity);
+  return (Number(capacity) / 100000000).toLocaleString(undefined, {
+    ...options,
+    minimumFractionDigits: 8,
+  });
+}
+
+function formatBalance(capacity, options = {}) {
+  return formatCapacity(capacity, { signDisplay: "always", ...options });
+}
+
+function LockGroupDetails({ group }) {
+  const lockScript = (group.inputs[0] ?? group.outputs[0]).output.lock;
+  const mainnetAddress = encodeCkbAddress(Script.parse(lockScript), "ckb");
+  const testnetAddress = encodeCkbAddress(Script.parse(lockScript), "ckt");
+  let balance = BigInt(0);
+  for (const input of group.inputs) {
+    balance = balance - BigInt(input.output.capacity);
+  }
+  for (const output of group.outputs) {
+    balance = balance + BigInt(output.output.capacity);
+  }
+
+  return (
+    <dl className="px-4 divide-y divide-gray-100">
+      <div className="py-3 sm:grid sm:grid-cols-4">
+        <dt>Mainnet Address</dt>
+        <dd className="sm:col-span-3">
+          <code className="break-all font-mono">{mainnetAddress}</code>
+        </dd>
+      </div>
+      <div className="py-3 sm:grid sm:grid-cols-4">
+        <dt>Testnet Address</dt>
+        <dd className="sm:col-span-3">
+          <code className="break-all font-mono">{testnetAddress}</code>
+        </dd>
+      </div>
+      <div className="py-3 sm:grid sm:grid-cols-4">
+        <dt>CKB Balance</dt>
+        <dd className="sm:col-span-3">
+          <code className="break-all font-mono">{formatBalance(balance)}</code>
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
+function TransactionDetails({ transaction }) {
+  const groups = groupByLockScript(transaction.buildingPacket);
+  return (
+    <Accordion className="mb-4">
+      {Array.from(groups.entries()).map(([scriptHash, group]) => (
+        <Accordion.Panel key={`lock-group-${scriptHash}`}>
+          <Accordion.Title>
+            <LockGroupTitle group={group} />
+          </Accordion.Title>
+          <Accordion.Content>
+            <LockGroupDetails key={scriptHash} group={group} />
+          </Accordion.Content>
+        </Accordion.Panel>
+      ))}
+    </Accordion>
+  );
 }
 
 export default function TransactionPage({
@@ -121,7 +223,7 @@ export default function TransactionPage({
       {hasPendingSignatures ? (
         <ResolveInputs {...{ endpoint, transaction, resolveInputs }} />
       ) : (
-        <TransactionDetails />
+        <TransactionDetails {...{ transaction }} />
       )}
       <div className="mb-4 flex flex-row gap-2 flex-wrap">
         <DeleteButton
