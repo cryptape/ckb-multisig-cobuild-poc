@@ -7,10 +7,12 @@ import {
   Button,
   Label,
   TextInput,
+  Tooltip,
 } from "flowbite-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import DeleteButton from "./components/DeleteButton.js";
-import { encodeCkbAddress } from "./lib/ckb-address.js";
+import { SECP256K1_CODE_HASH, encodeCkbAddress } from "./lib/ckb-address.js";
+import { multisigStatus } from "./lib/multisig-lock-action";
 import { groupByLockScript } from "./lib/transaction.js";
 
 function isEmpty(obj) {
@@ -151,17 +153,63 @@ function formatBalance(capacity, options = {}) {
   return formatCapacity(capacity, { signDisplay: "always", ...options });
 }
 
-function LockGroupDetails({ group }) {
-  const lockScript = (group.inputs[0] ?? group.outputs[0]).output.lock;
-  const mainnetAddress = encodeCkbAddress(Script.parse(lockScript), "ckb");
-  const testnetAddress = encodeCkbAddress(Script.parse(lockScript), "ckt");
-  let balance = BigInt(0);
-  for (const input of group.inputs) {
-    balance = balance - BigInt(input.output.capacity);
-  }
-  for (const output of group.outputs) {
-    balance = balance + BigInt(output.output.capacity);
-  }
+const STATE_COLORS = {
+  pending: "yellow",
+  ready: "green",
+  unsigned: "yellow",
+  "partially signed": "yellow",
+};
+
+function LockGroupStatus({ txHash, scriptHash, group }) {
+  const badge = useMemo(() => {
+    const lockScript = (group.inputs[0] ?? group.outputs[0]).output.lock;
+    const lockScriptName = KNOWN_SCRIPT_NAME[lockScript.code_hash] ?? "unknown";
+    if (group.inputs.length == 0) {
+      return;
+    }
+
+    if (lockScriptName === "secp256k1_blake160") {
+      const status =
+        group.witness && group.witness != "0x" ? "signed" : "unsigned";
+      return (
+        <Badge className="inline-block" color={STATE_COLORS[status]}>
+          {status}
+        </Badge>
+      );
+    }
+    if (lockScriptName === "secp256k1_blake160_multisig") {
+      const status = multisigStatus(group.multisigActionData);
+      return (
+        <Badge className="inline-block" color={STATE_COLORS[status]}>
+          {status}
+        </Badge>
+      );
+    }
+  }, [txHash, scriptHash]);
+
+  return badge ? (
+    <div className="py-3 sm:grid sm:grid-cols-4">
+      <dt>Status</dt>
+      <dd className="sm:col-span-3">{badge}</dd>
+    </div>
+  ) : null;
+}
+
+function LockGroupDetails({ txHash, scriptHash, group }) {
+  const { mainnetAddress, testnetAddress, balance } = useMemo(() => {
+    const lockScript = (group.inputs[0] ?? group.outputs[0]).output.lock;
+    const mainnetAddress = encodeCkbAddress(Script.parse(lockScript), "ckb");
+    const testnetAddress = encodeCkbAddress(Script.parse(lockScript), "ckt");
+    let balance = BigInt(0);
+    for (const input of group.inputs) {
+      balance = balance - BigInt(input.output.capacity);
+    }
+    for (const output of group.outputs) {
+      balance = balance + BigInt(output.output.capacity);
+    }
+
+    return { mainnetAddress, testnetAddress, balance };
+  }, [txHash, scriptHash]);
 
   return (
     <dl className="px-4 divide-y divide-gray-100">
@@ -177,18 +225,84 @@ function LockGroupDetails({ group }) {
           <code className="break-all font-mono">{testnetAddress}</code>
         </dd>
       </div>
+      <LockGroupStatus txHash={txHash} scriptHash={scriptHash} group={group} />
       <div className="py-3 sm:grid sm:grid-cols-4">
         <dt>CKB Balance</dt>
         <dd className="sm:col-span-3">
           <code className="break-all font-mono">{formatBalance(balance)}</code>
         </dd>
       </div>
+      {group.multisigActionData ? (
+        <MultisigActionDataDetails data={group.multisigActionData} />
+      ) : null}
     </dl>
   );
 }
 
+function MultisigActionDataDetails({ data }) {
+  const signers = data.config.signer_pubkey_hashes.map((args) => {
+    const script = Script.parse({
+      code_hash: SECP256K1_CODE_HASH,
+      hash_type: "type",
+      args,
+    });
+    return {
+      args,
+      testnet: encodeCkbAddress(script, "ckt"),
+      mainnet: encodeCkbAddress(script, "ckb"),
+    };
+  });
+
+  return (
+    <div className="py-3">
+      <dt className="font-semibold text-lg text-center">Multisig</dt>
+      <dd>
+        <ol className="list-decimal">
+          {Array.from(signers.entries()).map(
+            ([index, { args, mainnet, testnet }]) => (
+              <li className="mb-2" key={mainnet}>
+                <div className="inline-block mr-2">
+                  <Tooltip
+                    content={
+                      <>
+                        <p>{mainnet}</p>
+                        <p>{testnet}</p>
+                      </>
+                    }
+                  >
+                    <code className="font-mono break-all">
+                      {shortAddress(mainnet)}
+                    </code>
+                  </Tooltip>
+                </div>
+                {index <= data.config.require_first_n ? (
+                  <Badge className="inline-block mr-2">required</Badge>
+                ) : null}
+                {data.signed.findIndex((item) => item.pubkey_hash === args) ===
+                -1 ? (
+                  <Badge className="inline-block mr-2" color="yellow">
+                    unsigned
+                  </Badge>
+                ) : (
+                  <Badge className="inline-block mr-2" color="green">
+                    signed
+                  </Badge>
+                )}
+              </li>
+            ),
+          )}
+        </ol>
+      </dd>
+    </div>
+  );
+}
+
 function TransactionDetails({ transaction }) {
-  const groups = groupByLockScript(transaction.buildingPacket);
+  const groups = useMemo(
+    () => groupByLockScript(transaction.buildingPacket),
+    [transaction.buildingPacket],
+  );
+
   return (
     <Accordion className="mb-4">
       {Array.from(groups.entries()).map(([scriptHash, group]) => (
@@ -197,7 +311,12 @@ function TransactionDetails({ transaction }) {
             <LockGroupTitle group={group} />
           </Accordion.Title>
           <Accordion.Content>
-            <LockGroupDetails key={scriptHash} group={group} />
+            <LockGroupDetails
+              key={scriptHash}
+              txHash={transaction.buildingPacket.value.payload.hash}
+              scriptHash={scriptHash}
+              group={group}
+            />
           </Accordion.Content>
         </Accordion.Panel>
       ))}
@@ -214,12 +333,23 @@ export default function TransactionPage({
 }) {
   const hasPendingSignatures = !isEmpty(transaction.pendingSignatures);
   const hash = transaction.buildingPacket.value.payload.hash;
+  const state = (
+    <Badge className="inline-block" color={STATE_COLORS[transaction.state]}>
+      {transaction.state}
+    </Badge>
+  );
 
   return (
     <section className="mb-8">
       <h2 className="text-lg mb-4">
         Transaction <code className="break-all">{hash}</code>
       </h2>
+      <dl className="px-4 divide-y divide-gray-100">
+        <div className="py-3 sm:grid sm:grid-cols-4">
+          <dt>Status</dt>
+          <dd className="sm:col-span-3">{state}</dd>
+        </div>
+      </dl>
       {hasPendingSignatures ? (
         <ResolveInputs {...{ endpoint, transaction, resolveInputs }} />
       ) : (

@@ -1,7 +1,7 @@
 import { ckbHasher } from "@ckb-cobuild/ckb-hasher";
 import { Script } from "@ckb-cobuild/ckb-molecule-codecs";
 import { ScriptInfo } from "@ckb-cobuild/cobuild";
-import mol, { createUint8ArrayJsonCodec } from "@ckb-cobuild/molecule";
+import mol, { createUint8ArrayJsonCodec, toJson } from "@ckb-cobuild/molecule";
 import { SECP256K1_MULTISIG_CODE_HASH } from "./ckb-address.js";
 
 export const PubkeyHash = createUint8ArrayJsonCodec(
@@ -82,4 +82,24 @@ export function buildAction(lockArgs, actionData) {
       .digest(),
     data: MultisigAction.pack(actionData),
   };
+}
+export function multisigStatus(actionData) {
+  if (actionData.signed.length >= actionData.config.threshold) {
+    for (const pubkeyHash of actionData.config.signer_pubkey_hashes.slice(
+      0,
+      actionData.config.require_first_n,
+    )) {
+      const pubkeyHashHex = toJson(pubkeyHash);
+      if (
+        actionData.signed.findIndex(
+          (item) => toJson(item.pubkey_hash) === pubkeyHashHex,
+        ) === -1
+      ) {
+        return "partially signed";
+      }
+    }
+    return "ready";
+  }
+
+  return actionData.signed.length > 0 ? "partially signed" : "unsigned";
 }

@@ -29,6 +29,7 @@ function AddressesList({ navigate, addresses, deleteAddress }) {
 }
 
 const IMPORT_PAGE = "#/transactions/import";
+const STATE_COLORS = { pending: "yellow" };
 
 function TransactionsList({ navigate, transactions, deleteTransaction }) {
   return (
@@ -47,7 +48,7 @@ function TransactionsList({ navigate, transactions, deleteTransaction }) {
             >
               {tx.buildingPacket.value.payload.hash}
             </a>
-            <Badge>{tx.state}</Badge>
+            <Badge color={STATE_COLORS[tx.state]}>{tx.state}</Badge>
             <DeleteButton
               onClick={() =>
                 deleteTransaction(tx.buildingPacket.value.payload.hash)
