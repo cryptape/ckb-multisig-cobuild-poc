@@ -386,6 +386,7 @@ export function groupByLockScript(buildingPacketJson) {
       index,
       output,
       data: buildingPacketJson.value.resolved_inputs.outputs_data[index],
+      input: buildingPacketJson.value.payload.inputs[index],
     };
     if (map.has(scriptHash)) {
       map.get(scriptHash).inputs.push(cell);

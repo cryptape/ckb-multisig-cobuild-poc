@@ -1,4 +1,6 @@
+import { ckbHasher } from "@ckb-cobuild/ckb-hasher";
 import { Script } from "@ckb-cobuild/ckb-molecule-codecs";
+import { decodeHex } from "@ckb-cobuild/hex-encoding";
 import { createJsonRpcClient } from "@ckb-cobuild/jsonrpc-client";
 import {
   Accordion,
@@ -195,6 +197,10 @@ function LockGroupStatus({ txHash, scriptHash, group }) {
   ) : null;
 }
 
+function isAssetCell(cell) {
+  return cell.output.type !== null || cell.data !== "0x";
+}
+
 function LockGroupDetails({ txHash, scriptHash, group }) {
   const { mainnetAddress, testnetAddress, balance } = useMemo(() => {
     const lockScript = (group.inputs[0] ?? group.outputs[0]).output.lock;
@@ -225,17 +231,119 @@ function LockGroupDetails({ txHash, scriptHash, group }) {
           <code className="break-all font-mono">{testnetAddress}</code>
         </dd>
       </div>
-      <LockGroupStatus txHash={txHash} scriptHash={scriptHash} group={group} />
       <div className="py-3 sm:grid sm:grid-cols-4">
         <dt>CKB Balance</dt>
         <dd className="sm:col-span-3">
           <code className="break-all font-mono">{formatBalance(balance)}</code>
         </dd>
       </div>
+      <LockGroupStatus txHash={txHash} scriptHash={scriptHash} group={group} />
       {group.multisigActionData ? (
         <MultisigActionDataDetails data={group.multisigActionData} />
       ) : null}
+      {group.inputs.findIndex(isAssetCell) !== -1 ? (
+        <InputAssetsList inputs={group.inputs.filter(isAssetCell)} />
+      ) : null}
+      {group.outputs.findIndex(isAssetCell) !== -1 ? (
+        <OutputAssetsList
+          txHash={txHash}
+          outputs={group.outputs.filter(isAssetCell)}
+        />
+      ) : null}
     </dl>
+  );
+}
+
+function OutPoint({ txHash, index }) {
+  return (
+    <div className="inline-block mr-2">
+      <Tooltip content={`${txHash}#${parseInt(index, 16)}`}>
+        <code className="font-mono break-all">
+          {txHash.slice(0, 15)}...{txHash.slice(txHash.length - 15)}#
+          {parseInt(index, 16)}
+        </code>
+      </Tooltip>
+    </div>
+  );
+}
+
+function TypeScript({ script }) {
+  return (
+    <Badge className="inline-block mr-2">
+      <Tooltip content={<pre>{JSON.stringify(script, null, 2)}</pre>}>
+        type:
+        {script !== null
+          ? KNOWN_SCRIPT_NAME[script.code_hash] ?? "unknown"
+          : "none"}
+      </Tooltip>
+    </Badge>
+  );
+}
+
+function Data({ data }) {
+  const dataHash =
+    data !== "0x"
+      ? "0x" +
+        ckbHasher()
+          .update(decodeHex(data.slice(2)))
+          .digest("hex")
+      : null;
+
+  return (
+    <Badge className="inline-block mr-2">
+      {dataHash ? (
+        <Tooltip content={dataHash}>
+          H(data):...{dataHash.slice(dataHash.length - 7)}
+        </Tooltip>
+      ) : (
+        <span>data:0x</span>
+      )}
+    </Badge>
+  );
+}
+
+function InputAssetsList({ inputs }) {
+  return (
+    <div className="py-3">
+      <dt className="font-semibold text-lg text-center">Assets Given Away</dt>
+      <dd>
+        <ul className="px-4 divide-y divide-gray-100">
+          {inputs.map((cell) => (
+            <li
+              key={`${cell.input.previous_output.tx_hash}-${cell.input.previous_output.index}`}
+            >
+              <OutPoint
+                txHash={cell.input.previous_output.tx_hash}
+                index={cell.input.previous_output.index}
+              />
+              <TypeScript script={cell.output.type} />
+              <Data data={cell.data} />
+              CKB-{formatCapacity(`${cell.output.capacity}`)}
+            </li>
+          ))}
+        </ul>
+      </dd>
+    </div>
+  );
+}
+
+function OutputAssetsList({ txHash, outputs }) {
+  return (
+    <div className="py-3">
+      <dt className="font-semibold text-lg text-center">Assets Received</dt>
+      <dd>
+        <ul className="px-4 divide-y divide-gray-100">
+          {outputs.map((cell) => (
+            <li key={`${txHash}-${cell.index}`}>
+              <OutPoint txHash={txHash} index={cell.index} />
+              <TypeScript script={cell.output.type} />
+              <Data data={cell.data} />
+              CKB{formatBalance(cell.output.capacity)}
+            </li>
+          ))}
+        </ul>
+      </dd>
+    </div>
   );
 }
 
@@ -255,7 +363,10 @@ function MultisigActionDataDetails({ data }) {
 
   return (
     <div className="py-3">
-      <dt className="font-semibold text-lg text-center">Multisig</dt>
+      <dt className="font-semibold text-lg text-center">
+        Multisig ({parseInt(data.config.threshold, 16)}/
+        {data.config.signer_pubkey_hashes.length})
+      </dt>
       <dd>
         <ol className="list-decimal">
           {Array.from(signers.entries()).map(
