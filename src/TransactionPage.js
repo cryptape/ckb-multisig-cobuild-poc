@@ -8,14 +8,17 @@ import {
   Badge,
   Button,
   Label,
+  Tabs,
   TextInput,
   Tooltip,
+  Radio,
 } from "flowbite-react";
 import { useMemo, useState } from "react";
+import { HiDownload, HiOutlineInformationCircle } from "react-icons/hi";
 import DeleteButton from "./components/DeleteButton.js";
 import { SECP256K1_CODE_HASH, encodeCkbAddress } from "./lib/ckb-address.js";
 import { multisigStatus } from "./lib/multisig-lock-action";
-import { groupByLockScript } from "./lib/transaction.js";
+import { groupByLockScript, exportTransaction } from "./lib/transaction.js";
 
 function isEmpty(obj) {
   for (const prop in obj) {
@@ -435,6 +438,81 @@ function TransactionDetails({ transaction }) {
   );
 }
 
+function ExportTransaction({ transaction }) {
+  const [format, setFormat] = useState("building-packet");
+  const fileName = `${transaction.buildingPacket.value.payload.hash}-${format}.json`;
+  const file = new Blob(
+    [JSON.stringify(exportTransaction(transaction, format), null, 2)],
+    { type: "text/plain" },
+  );
+
+  return (
+    <>
+      <h3 className="mb-4">Export</h3>
+
+      <fieldset className="flex max-w-md flex-col gap-4 mb-4">
+        <legend className="mb-4">Choose the format</legend>
+        <div className="flex items-top gap-2">
+          <Radio
+            id="export-building-packet"
+            name="format"
+            value="building-packet"
+            checked={format === "building-packet"}
+            onChange={() => setFormat("building-packet")}
+          />
+          <Label htmlFor="export-building-packet">
+            <p className="font-semibold">Building Packet</p>
+            <p>
+              Share this format and this web page to signers so they can choose
+              the tools to sign the tx
+            </p>
+          </Label>
+        </div>
+        <div className="flex items-top gap-2">
+          <Radio
+            id="export-ckb-cli"
+            name="format"
+            value="ckb-cli"
+            checked={format === "ckb-cli"}
+            onChange={() => setFormat("ckb-cli")}
+          />
+          <Label htmlFor="export-ckb-cli">
+            <p className="font-semibold">ckb-cli</p>
+            <p>Sign the downloaded file using `ckb-cli tx sign-inputs`</p>
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Radio
+            id="export-neuron"
+            name="format"
+            value="neuron"
+            checked={format === "neuron"}
+            onChange={() => setFormat("neuron")}
+          />
+          <Label htmlFor="export-neuron">
+            <p className="font-semibold">Neuron</p>
+            <p>Sign the downloaded file using Neuron Multisig Address Tool</p>
+          </Label>
+        </div>
+      </fieldset>
+
+      <p className="mb-8">
+        <Button
+          className="inline-block"
+          outlined
+          as="a"
+          download={fileName}
+          target="_blank"
+          rel="noreferrer"
+          href={URL.createObjectURL(file)}
+        >
+          Download
+        </Button>
+      </p>
+    </>
+  );
+}
+
 export default function TransactionPage({
   transaction,
   deleteTransaction,
@@ -464,7 +542,18 @@ export default function TransactionPage({
       {hasPendingSignatures ? (
         <ResolveInputs {...{ endpoint, transaction, resolveInputs }} />
       ) : (
-        <TransactionDetails {...{ transaction }} />
+        <Tabs>
+          <Tabs.Item
+            active
+            title="Transaction"
+            icon={HiOutlineInformationCircle}
+          >
+            <TransactionDetails {...{ transaction }} />
+          </Tabs.Item>
+          <Tabs.Item title="Download for Signing" icon={HiDownload}>
+            <ExportTransaction {...{ transaction }} />
+          </Tabs.Item>
+        </Tabs>
       )}
       <div className="mb-4 flex flex-row gap-2 flex-wrap">
         <DeleteButton

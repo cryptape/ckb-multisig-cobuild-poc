@@ -435,3 +435,7 @@ export function groupByLockScript(buildingPacketJson) {
 
   return map;
 }
+
+export function exportTransaction(tx) {
+  return tx.buildingPacket;
+}
