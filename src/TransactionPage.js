@@ -389,7 +389,7 @@ function MultisigActionDataDetails({ data }) {
                     </code>
                   </Tooltip>
                 </div>
-                {index <= data.config.require_first_n ? (
+                {index < data.config.require_first_n ? (
                   <Badge className="inline-block mr-2">required</Badge>
                 ) : null}
                 {data.signed.findIndex((item) => item.pubkey_hash === args) ===
@@ -505,7 +505,6 @@ function ExportTransaction({ transaction }) {
       <p className="mb-8">
         <Button
           className="inline-block"
-          outlined
           as="a"
           download={fileName}
           target="_blank"
@@ -562,6 +561,9 @@ export default function TransactionPage({
         </Tabs>
       )}
       <div className="mb-4 flex flex-row gap-2 flex-wrap">
+        <Button onClick={() => navigate("#/transactions/import")}>
+          Import
+        </Button>
         <DeleteButton
           onClick={() => {
             deleteTransaction(hash);

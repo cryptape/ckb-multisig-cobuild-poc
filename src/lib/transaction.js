@@ -3,12 +3,13 @@ import {
   RawTransaction,
   Script,
   Transaction,
+  Uint64,
   WitnessArgs,
   getRawTransaction,
-  Uint64,
 } from "@ckb-cobuild/ckb-molecule-codecs";
-import { decodeHex } from "@ckb-cobuild/hex-encoding";
+import { decodeHex, encodeHex } from "@ckb-cobuild/hex-encoding";
 import { toJson } from "@ckb-cobuild/molecule";
+import { ec as EC } from "elliptic";
 import {
   SECP256K1_CODE_HASH,
   SECP256K1_MULTISIG_CODE_HASH,
@@ -17,12 +18,10 @@ import {
 import { importMultisigAddresses } from "./multisig-address.js";
 import {
   MultisigAction,
-  MultisigConfig,
   SCRIPT_INFO,
   SCRIPT_INFO_HASH,
   buildAction,
 } from "./multisig-lock-action.js";
-import { ec as EC } from "elliptic";
 
 const SCRIPT_INFO_HASH_HEX = toJson(SCRIPT_INFO_HASH);
 const SECP256K1_CODE_HASH_HEX = toJson(SECP256K1_CODE_HASH);
@@ -91,6 +90,140 @@ export function importFromCkbCli(jsonContent) {
   });
 }
 
+function witnessFromNeuron(w) {
+  if (w === null || w === undefined || typeof w === "string") {
+    return w;
+  }
+
+  const { lock, inputType, outputType } = w;
+  return toJson(
+    WitnessArgs.pack(
+      WitnessArgs.parse({
+        lock: lock ?? null,
+        input_type: inputType ?? null,
+        output_type: outputType ?? null,
+      }),
+    ),
+  );
+}
+
+export function importFromNeuron(jsonContent) {
+  const payload = {
+    hash: jsonContent.transaction.hash,
+    witnesses: jsonContent.transaction.witnesses.map(witnessFromNeuron),
+    version: toJson(parseInt(jsonContent.transaction.version, 10)),
+    cell_deps: jsonContent.transaction.cellDeps.map((cd) => ({
+      out_point: {
+        tx_hash: cd.outPoint.txHash,
+        index: toJson(parseInt(cd.outPoint.index, 10)),
+      },
+      dep_type: cd.depType === "depGroup" ? "dep_group" : "code",
+    })),
+    header_deps: jsonContent.transaction.headerDeps,
+    inputs: jsonContent.transaction.inputs.map((item) => ({
+      previous_output: {
+        tx_hash: item.previousOutput.txHash,
+        index: toJson(parseInt(item.previousOutput.index, 10)),
+      },
+      since: toJson(BigInt(item.since)),
+    })),
+    outputs: jsonContent.transaction.outputs.map((item) => ({
+      capacity: toJson(BigInt(item.capacity)),
+      lock: {
+        args: item.lock.args,
+        code_hash: item.lock.codeHash,
+        hash_type: item.lock.hashType,
+      },
+      type: item.type
+        ? {
+            args: item.type.args,
+            code_hash: item.type.codeHash,
+            hash_type: item.type.hashType,
+          }
+        : null,
+    })),
+    outputs_data: jsonContent.transaction.outputs.map(
+      (item) => item.data ?? "0x",
+    ),
+  };
+  const lock_actions = [];
+  const seenLockHash = new Set();
+  for (const [index, item] of jsonContent.transaction.inputs.entries()) {
+    if (
+      item.lock.codeHash === SECP256K1_MULTISIG_CODE_HASH_HEX &&
+      !seenLockHash.has(item.lockHash)
+    ) {
+      seenLockHash.add(item.lockHash);
+      const witness = WitnessArgs.unpack(
+        decodeHex(payload.witnesses[index].slice(2)),
+      ).lock;
+      const signers = [];
+      for (let i = 0; i < witness[3]; ++i) {
+        signers[i] = witness.subarray(4 + 20 * i, 4 + 20 * (i + 1));
+      }
+      lock_actions.push(
+        toJson(
+          buildAction(decodeHex(item.lock.args.slice(2)), {
+            config: {
+              require_first_n: witness[1],
+              threshold: witness[2],
+              signer_pubkey_hashes: signers,
+            },
+            signed: Array.from(
+              jsonContent.transaction.signatures[item.lockHash].entries(),
+            ).map(([i, pubkeyHash]) => ({
+              pubkey_hash: decodeHex(pubkeyHash.slice(2)),
+              signature: witness.subarray(
+                4 + 20 * witness[3] + 65 * i,
+                4 + 20 * witness[3] + 65 * (i + 1),
+              ),
+            })),
+          }),
+        ),
+      );
+    }
+  }
+
+  const buildingPacket = {
+    type: "BuildingPacketV1",
+    value: {
+      message: { actions: [] },
+      resolved_inputs: {
+        outputs: jsonContent.transaction.inputs.map((item) => ({
+          capacity: toJson(BigInt(item.capacity)),
+          lock: {
+            args: item.lock.args,
+            code_hash: item.lock.codeHash,
+            hash_type: item.lock.hashType,
+          },
+          type: item.type
+            ? {
+                args: item.type.args,
+                code_hash: item.type.codeHash,
+                hash_type: item.type.hashType,
+              }
+            : null,
+        })),
+        outputs_data: jsonContent.transaction.inputs.map(
+          (item) => item.data ?? "0x",
+        ),
+      },
+      change_output: null,
+      script_infos: toJson([SCRIPT_INFO]),
+      lock_actions,
+      payload,
+    },
+  };
+
+  const tx = {
+    pendingSignatures: {},
+    state: "pending",
+    buildingPacket,
+  };
+  checkIsReady(tx);
+  return tx;
+}
+
 export function importTransaction(jsonContent) {
   if (
     "transaction" in jsonContent &&
@@ -98,6 +231,17 @@ export function importTransaction(jsonContent) {
     "signatures" in jsonContent
   ) {
     return importFromCkbCli(jsonContent);
+  } else if (
+    "transaction" in jsonContent &&
+    "signatures" in jsonContent["transaction"]
+  ) {
+    return importFromNeuron(jsonContent);
+  } else if (jsonContent["type"] === "BuildingPacketV1") {
+    return {
+      pendingSignatures: {},
+      state: "pending",
+      buildingPacket: jsonContent,
+    };
   }
   throw new Error("Unknown JSON format");
 }
@@ -184,6 +328,19 @@ export function isReady(transaction) {
       if (actionData.signed.length < actionData.config.threshold) {
         return false;
       }
+      for (const required of actionData.config.signer_pubkey_hashes.slice(
+        0,
+        actionData.config.require_first_n,
+      )) {
+        const requiredHex = encodeHex(required);
+        if (
+          actionData.config.signed.findIndex(
+            (item) => encodeHex(item.pubkey_hash) === requiredHex,
+          ) === -1
+        ) {
+          return false;
+        }
+      }
     }
   }
 
@@ -202,15 +359,15 @@ function mergeLockActions(target, lockActions) {
       // non-multisig lock action, just overwrite
       Object.assign(existing, lockAction);
     } else {
-      const existingData = MultisigConfig.unpack(
+      const existingData = MultisigAction.unpack(
         decodeHex(existing.data.slice(2)),
       );
-      const newData = MultisigConfig.unpack(
+      const newData = MultisigAction.unpack(
         decodeHex(lockAction.data.slice(2)),
       );
       for (const sig of newData.signed) {
         const newPubkeyHash = toJson(sig.pubkey_hash);
-        const existingSigIndex = existingData.findIndex(
+        const existingSigIndex = existingData.signed.findIndex(
           (item) => toJson(item.pubkey_hash) === newPubkeyHash,
         );
         if (existingSigIndex !== -1) {
@@ -218,7 +375,7 @@ function mergeLockActions(target, lockActions) {
         }
         existingData.signed.push(sig);
       }
-      existing.data = toJson(MultisigConfig.pack(existingData));
+      existing.data = toJson(MultisigAction.pack(existingData));
     }
   }
 
