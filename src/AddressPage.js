@@ -50,7 +50,6 @@ export function NeuronUsage({ address, ...props }) {
       <p>
         <Button
           className="inline-block"
-          outlined
           as="a"
           download={fileName}
           target="_blank"

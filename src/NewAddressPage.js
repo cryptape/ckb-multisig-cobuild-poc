@@ -42,6 +42,7 @@ function check(draft, formData) {
 export default function NewAddressPage({ addAddress, navigate, template }) {
   const [state, dispatch] = useImmerReducer(
     (draft, action) => {
+      let data;
       switch (action.type) {
         case "incrementSigner":
           draft.data.signers.push("");
@@ -53,7 +54,7 @@ export default function NewAddressPage({ addAddress, navigate, template }) {
           }
           break;
         case "submit":
-          const data = check(draft, action.payload);
+          data = check(draft, action.payload);
           if (data !== undefined) {
             addAddress(data);
           }
