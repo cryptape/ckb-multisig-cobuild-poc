@@ -68,7 +68,6 @@ function ResolveInputs({ endpoint, transaction, resolveInputs }) {
       );
       setState({ isProcessing: false, error: null });
     } catch (error) {
-      console.error(error.stack);
       setState({
         isProcessing: false,
         error: `Failed to resolve inputs: ${error}`,

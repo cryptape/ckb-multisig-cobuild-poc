@@ -14,6 +14,7 @@ import {
   SECP256K1_CODE_HASH,
   SECP256K1_MULTISIG_CODE_HASH,
   decodeCkbAddress,
+  encodeDeprecatedSecp256k1Address,
 } from "./ckb-address.js";
 import { importMultisigAddresses } from "./multisig-address.js";
 import {
@@ -603,7 +604,7 @@ export function exportBuildingPacket(bp, format) {
     for (const output of bp.value.payload.outputs) {
       fee = fee - BigInt(output.capacity);
     }
-    for (const output of bp.value.payload.outputs) {
+    for (const output of bp.value.resolved_inputs.outputs) {
       const lockHash =
         "0x" +
         ckbHasher()
@@ -715,6 +716,43 @@ export function exportBuildingPacket(bp, format) {
       type: "SendFromMultisigOnlySig",
       status: "PartiallySigned",
       context: [bp.value.payload],
+    };
+  } else if (format === "ckb-cli") {
+    // eslint-disable-next-line no-unused-vars
+    const { hash, ...transaction } = bp.value.payload;
+    const signatures = {};
+    const multisig_configs = {};
+    for (const output of bp.value.resolved_inputs.outputs) {
+      if (
+        output.lock.code_hash === SECP256K1_MULTISIG_CODE_HASH_HEX &&
+        !(output.lock.args in multisig_configs)
+      ) {
+        const lockHash =
+          "0x" +
+          ckbHasher()
+            .update(Script.pack(Script.parse(output.lock)))
+            .digest("hex");
+        const action = bp.value.lock_actions.find(
+          (item) => item.script_hash === lockHash,
+        );
+        const da = toJson(
+          MultisigAction.unpack(decodeHex(action.data.slice(2))),
+        );
+        multisig_configs[output.lock.args] = {
+          sighash_addresses: da.config.signer_pubkey_hashes.map((args) =>
+            encodeDeprecatedSecp256k1Address(args),
+          ),
+          require_first_n: parseInt(da.config.require_first_n, 16),
+          threshold: parseInt(da.config.threshold, 16),
+        };
+        signatures[output.lock.args] = da.signed.map((item) => item.signature);
+      }
+    }
+
+    return {
+      transaction,
+      signatures,
+      multisig_configs,
     };
   }
 

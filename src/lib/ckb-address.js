@@ -97,3 +97,9 @@ export function decodeDeprecatedSecp256k1Address(address) {
     // ignore
   }
 }
+
+export function encodeDeprecatedSecp256k1Address(args) {
+  const data = [1, 0, ...Array.from(decodeHex(args.slice(2)))];
+  const words = bech32.toWords(data);
+  return bech32.encode("ckt", words, 1023);
+}
