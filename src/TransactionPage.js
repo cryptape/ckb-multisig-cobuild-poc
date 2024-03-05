@@ -18,7 +18,7 @@ import { HiDownload, HiOutlineInformationCircle } from "react-icons/hi";
 import DeleteButton from "./components/DeleteButton.js";
 import { SECP256K1_CODE_HASH, encodeCkbAddress } from "./lib/ckb-address.js";
 import { multisigStatus } from "./lib/multisig-lock-action";
-import { groupByLockScript, exportTransaction } from "./lib/transaction.js";
+import { groupByLockScript, exportBuildingPacket } from "./lib/transaction.js";
 
 function isEmpty(obj) {
   for (const prop in obj) {
@@ -442,7 +442,13 @@ function ExportTransaction({ transaction }) {
   const [format, setFormat] = useState("building-packet");
   const fileName = `${transaction.buildingPacket.value.payload.hash}-${format}.json`;
   const file = new Blob(
-    [JSON.stringify(exportTransaction(transaction, format), null, 2)],
+    [
+      JSON.stringify(
+        exportBuildingPacket(transaction.buildingPacket, format),
+        null,
+        2,
+      ),
+    ],
     { type: "text/plain" },
   );
 
@@ -481,7 +487,7 @@ function ExportTransaction({ transaction }) {
             <p>Sign the downloaded file using `ckb-cli tx sign-inputs`</p>
           </Label>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-top gap-2">
           <Radio
             id="export-neuron"
             name="format"

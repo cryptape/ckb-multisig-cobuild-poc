@@ -436,6 +436,130 @@ export function groupByLockScript(buildingPacketJson) {
   return map;
 }
 
-export function exportTransaction(tx) {
-  return tx.buildingPacket;
+export function exportBuildingPacket(bp, format) {
+  if (format === "neuron") {
+    const signatures = {};
+    let fee = 0n;
+    for (const output of bp.value.resolved_inputs.outputs) {
+      fee = fee + BigInt(output.capacity);
+    }
+    for (const output of bp.value.payload.outputs) {
+      fee = fee - BigInt(output.capacity);
+    }
+    for (const output of bp.value.payload.outputs) {
+      const lockHash =
+        "0x" +
+        ckbHasher()
+          .update(Script.pack(Script.parse(output.lock)))
+          .digest("hex");
+      if (output.lock.code_hash === SECP256K1_CODE_HASH_HEX) {
+        signatures[lockHash] = [output.lock.args];
+      } else if (output.lock.code_hash === SECP256K1_MULTISIG_CODE_HASH_HEX) {
+        const action = bp.value.lock_actions.find(
+          (item) => item.script_hash === lockHash,
+        );
+        const da = toJson(
+          MultisigAction.unpack(decodeHex(action.data.slice(2))),
+        );
+        signatures[lockHash] = da.signed.map((item) => item.pubkey_hash);
+      }
+    }
+    return {
+      transaction: {
+        cellDeps: bp.value.payload.cell_deps.map((cd) => ({
+          outPoint: {
+            txHash: cd.out_point.tx_hash,
+            index: parseInt(cd.out_point.index, 16).toString(),
+          },
+          depType: cd.dep_type === "dep_group" ? "depGroup" : "code",
+        })),
+        headerDeps: bp.value.payload.header_deps,
+        inputs: Array.from(bp.value.payload.inputs.entries()).map(
+          ([index, input]) => ({
+            previousOutput: {
+              txHash: input.previous_output.tx_hash,
+              index: parseInt(input.previous_output.index, 16).toString(),
+            },
+            since: BigInt(input.since).toString(),
+            capacity: BigInt(
+              bp.value.resolved_inputs.outputs[index].capacity,
+            ).toString(),
+            lock: {
+              args: bp.value.resolved_inputs.outputs[index].lock.args,
+              codeHash: bp.value.resolved_inputs.outputs[index].lock.code_hash,
+              hashType: bp.value.resolved_inputs.outputs[index].lock.hash_type,
+            },
+            type:
+              bp.value.resolved_inputs.outputs[index].type !== null
+                ? {
+                    args: bp.value.resolved_inputs.outputs[index].type.args,
+                    codeHash:
+                      bp.value.resolved_inputs.outputs[index].type.code_hash,
+                    hashType:
+                      bp.value.resolved_inputs.outputs[index].type.hash_type,
+                  }
+                : null,
+            lockHash:
+              "0x" +
+              ckbHasher()
+                .update(
+                  Script.pack(
+                    Script.parse(bp.value.resolved_inputs.outputs[index].lock),
+                  ),
+                )
+                .digest("hex"),
+            data: bp.value.resolved_inputs.outputs_data[index],
+          }),
+        ),
+        outputs: Array.from(bp.value.payload.outputs.entries()).map(
+          ([index, output]) => ({
+            capacity: BigInt(output.capacity).toString(),
+            lock: {
+              args: output.lock.args,
+              codeHash: output.lock.code_hash,
+              hashType: output.lock.hash_type,
+            },
+            type:
+              output.type !== null
+                ? {
+                    args: output.type.args,
+                    codeHash: output.type.code_hash,
+                    hashType: output.type.hash_type,
+                  }
+                : null,
+            lockHash:
+              "0x" +
+              ckbHasher()
+                .update(Script.pack(Script.parse(output.lock)))
+                .digest("hex"),
+            data: bp.value.payload.outputs_data[index],
+          }),
+        ),
+        witnesses: bp.value.payload.witnesses.map((w) => {
+          if (w !== "0x") {
+            const { lock, input_type, output_type } = toJson(
+              WitnessArgs.unpack(decodeHex(w.slice(2))),
+            );
+            return {
+              lock,
+              inputType: input_type,
+              outputType: output_type,
+            };
+          }
+        }),
+        description: "From Mulgisig Cobuild PoC",
+        nervosDao: false,
+        signatures,
+        hash: bp.value.payload.hash,
+        version: parseInt(bp.value.payload.version, 16).toString(),
+        fee: fee.toString(),
+        outputsData: bp.value.payload.outputs_data,
+      },
+      type: "SendFromMultisigOnlySig",
+      status: "PartiallySigned",
+      context: [bp.value.payload],
+    };
+  }
+
+  return bp;
 }
