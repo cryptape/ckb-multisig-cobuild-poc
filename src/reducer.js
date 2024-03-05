@@ -78,6 +78,13 @@ function reducer(draft, action) {
         resolvePendingSignatures(tx);
       }
       break;
+    case "setTransactionStatus":
+      draft.endpoint = action.payload.endpoint;
+      tx = findTransactionByHash(draft, action.payload.hash);
+      if (tx !== undefined) {
+        tx.state = action.payload.status;
+      }
+      break;
     default:
       throw new Error(`Unknown action type ${action.type}`);
   }
@@ -126,6 +133,15 @@ const usePersistReducer = () => {
     (hash) => dispatch({ type: "deleteTransaction", payload: hash }),
     [dispatch],
   );
+  const setTransactionStatus = useCallback(
+    (endpoint, hash, status) =>
+      dispatch({
+        type: "setTransactionStatus",
+        payload: { endpoint, hash, status },
+      }),
+
+    [dispatch],
+  );
   const resolveInputs = useCallback(
     (endpoint, hash, resolvedInputs) =>
       dispatch({
@@ -142,6 +158,7 @@ const usePersistReducer = () => {
       addTransaction,
       deleteTransaction,
       resolveInputs,
+      setTransactionStatus,
     },
   ];
 };

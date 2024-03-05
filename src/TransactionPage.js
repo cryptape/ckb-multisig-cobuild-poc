@@ -561,6 +561,16 @@ export default function TransactionPage({
         </Tabs>
       )}
       <div className="mb-4 flex flex-row gap-2 flex-wrap">
+        <Button
+          disabled={
+            transaction.state !== "ready" &&
+            transaction.state !== "committed" &&
+            transaction.state !== "rejected"
+          }
+          onClick={() => navigate(`#/transactions/broadcast/${hash}`)}
+        >
+          Broadcast
+        </Button>
         <Button onClick={() => navigate("#/transactions/import")}>
           Import
         </Button>

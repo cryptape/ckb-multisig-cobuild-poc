@@ -4,6 +4,7 @@ import { useHash } from "react-use";
 import AddressPage from "./AddressPage.js";
 import ImportAddressPage from "./ImportAddressPage.js";
 import ImportTransactionPage from "./ImportTransactionPage.js";
+import BroadcastTransactionPage from "./BroadcastTransactionPage.js";
 import IndexPage from "./IndexPage.js";
 import Layout from "./Layout.js";
 import NewAddressPage from "./NewAddressPage.js";
@@ -32,6 +33,7 @@ function Router() {
       addTransaction,
       deleteTransaction,
       resolveInputs,
+      setTransactionStatus,
     },
   ] = usePersistReducer();
 
@@ -70,6 +72,24 @@ function Router() {
         const address = findAddressByArgs(state, args);
         return address ? (
           <AddressPage {...{ address, deleteAddress, navigate }} />
+        ) : (
+          fallbackRoute()
+        );
+      },
+    ],
+    [
+      "#/transactions/broadcast/",
+      (hash) => {
+        const transaction = findTransactionByHash(state, hash);
+        return transaction ? (
+          <BroadcastTransactionPage
+            {...{
+              transaction,
+              setTransactionStatus,
+              navigate,
+              endpoint: state.endpoint,
+            }}
+          />
         ) : (
           fallbackRoute()
         );
