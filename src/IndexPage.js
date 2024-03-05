@@ -131,6 +131,23 @@ export default function IndexPage({
 }) {
   return (
     <>
+      <p className="mb-4">
+        <a
+          className="text-blue-600 dark:text-blue-500 hover:underline"
+          target="_blank"
+          rel="noreferrer"
+          href="https://github.com/cryptape/ckb-multisig-cobuild-poc/blob/main/README.md"
+        >
+          README
+        </a>
+      </p>
+
+      <p className="mb-4">
+        This webpage stores data in your browser, allowing you to save and use
+        it offline. When it needs to access CKB RPC, it will explicitly prompt
+        you for an RPC URL.
+      </p>
+
       <AddressesList
         {...{ navigate, deleteAddress, addresses: state.addresses }}
       />
